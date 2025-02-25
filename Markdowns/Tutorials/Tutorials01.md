@@ -22,10 +22,13 @@
    przyjmuje listę liczb całkowitych i zwraca wszystkie różne pary `(x, y)` 
    (przy założeniu, że `x ≠ y`), dla których `x` dzieli `y` bez reszty (tj. `y mod x == 0`). 
 
-5. **Filtrowany iloczyn kartezjański**  
-   Napisz funkcję `filteredCartesian :: [Int] -> [Int] -> [(Int, Int)]`, która oblicza 
-   iloczyn kartezjański dwóch list liczb całkowitych, ale uwzględnia tylko te pary `(a, b)`,
-   dla których suma ich kwadratów (`a² + b²`) jest liczbą kwadratową.  
+5. **Kombinacje**  
+    Napisz funkcję  
+    ```haskell
+    combinations :: Int -> [a] -> [[a]]
+    ```
+    która generuje wszystkie kombinacje k-elementowe z danej listy. 
+    Na przykład, dla `k = 2` i listy `[1,2,3]` wynikiem powinno być `[[1,2], [1,3], [2,3]]`.
 
 # Leniwa/gorliwa ewaluacja, `seq` i bang patterns
 
@@ -35,7 +38,7 @@
    Porównaj jej działanie z naiwną, leniwą implementacją sumowania.
 
 7. **Rekurencyjna funkcja silnia z użyciem bang patterns**  
-   Napisz rekurencyjną funkcję `factorial :: Integer -> Integer`, która oblicza silnię danej liczby. 
+   Napisz rekurencyjną funkcję `factorial :: Int -> Int`, która oblicza silnię danej liczby. 
    Użyj bang patterns w akumulatorze. 
 
 8. **Wymuszanie ewaluacji elementów krotki**  
@@ -53,18 +56,18 @@
     gdzie leniwa ewaluacja mogłaby prowadzić do wycieków pamięci. 
     Zrefaktoryzuj funkcję, używając `seq` lub bang patterns, aby wymusić ścisłą ewaluację. 
 
-# Tail recursion
+# Rekurencja ogonkowa 
 
-11. **Tail-recursive NWD z rozszerzonym przetwarzaniem danych wejściowych**  
+11. **Rekurencja ogonkowa i NWD z rozszerzonym przetwarzaniem danych wejściowych**  
     Napisz funkcję `tailGCD :: Integral a => a -> a -> a`, która oblicza największy 
     wspólny dzielnik (NWD) dwóch liczb całkowitych.
 
-12. **Tail-recursive quicksort z użyciem jawnego stosu**  
+12. **Rekurencja ogonkowa i quicksort z użyciem jawnego stosu**  
     Zaimplementuj wersję algorytmu quicksort: `tailQuickSort :: Ord a => [a] -> [a]`, 
     która unika głębokiej rekurencji, używając akumulatora lub jawnego stosu do 
     zarządzania podlistami, które trzeba posortować.
 
-13. **Tail-recursive obliczanie zbioru potęgowego (power set)**  
+13. **Rekurencja ogonkowa i obliczanie zbioru potęgowego (power set)**  
     Napisz funkcję `tailPowerSet :: [a] -> [[a]]`, która oblicza zbiór potęgowy 
     (power set) danej listy, wykorzystując tail recursion. 
     Upewnij się, że:  
@@ -72,7 +75,7 @@
     - Unikasz tworzenia się pośrednich wyrażeń (thunks) podczas łączenia podzbiorów.  
     - Funkcja działa efektywnie nawet dla list o umiarkowanym rozmiarze.
 
-14. **Tail-recursive sumowanie zagnieżdżonej struktury list**  
+14. **Rekurencja ogonkowa i sumowanie zagnieżdżonej struktury list**  
     Zdefiniuj typ rekurencyjny dla zagnieżdżonych list:  
     ```haskell
     data NestedList a = Elem a | List [NestedList a]
@@ -81,7 +84,7 @@
     `sumNested :: Num a => NestedList a -> a`, 
     która oblicza sumę wszystkich elementów w zagnieżdżonej liście. 
 
-15. **Tail-recursive przeglądanie drzewa**  
+15. **Rekurencja ogonkowa i przeglądanie drzewa**  
     Dla drzewa binarnego zdefiniowanego jako:  
     ```haskell
     data Tree a = Empty | Node a (Tree a) (Tree a)
@@ -118,7 +121,7 @@
     - `myFoldr`: Funkcję złożenia prawego (`foldr`), która potrafi działać na nieskończonych listach, jeśli to możliwe.  
     - `myFilter`: Funkcję analogiczną do `filter`.  
 
-20. **Reprezentacja grafu i algorytmy**  
+19. **Reprezentacja grafu i algorytmy**  
     Zdefiniuj algebryczny typ danych reprezentujący graf nieskierowany, w którym wierzchołki mogą 
     przechowywać dowolne dane. Napisz funkcje, które:  
     - *Przeszukiwanie w głąb (DFS)*: Przemierzają graf, zaczynając od danego wierzchołka.  
