@@ -15,7 +15,7 @@ Basics/Lecture01.hs
 
 
 # Zaliczenie przedmiotu
-* Projekt zespołowy, (40 pktów, przydzielane na +-dziesiątych zajęciach)
+* Projekt zespołowy, (70 pktów, przydzielane na +-dziesiątych zajęciach)
 * Dwa testy na laboratoriach, (2 x 15 pktów)
 
 ---
