@@ -69,3 +69,7 @@
     - *Przeszukiwanie w głąb (DFS)*: Przemierzają graf, zaczynając od danego wierzchołka.  
     - *Wykrywanie cykli*: Sprawdzają, czy graf zawiera cykle.  
     - *Znajdowanie ścieżki*: Znajdują ścieżkę między dwoma wierzchołkami (jeśli taka istnieje).  
+
+10. **Znane typeclassy dla drzew** 
+    Zdefiniuj instancje `Show, Eq, Semigroup, Monoid, Foldable, Functor` dla parametrycznego typu danych 
+    `data T a = EmptyT | LeafT a | InnerT (T a) (T a)`
