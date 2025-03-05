@@ -2,7 +2,7 @@
 
 module Lecture02 where
 
--- data Bool = True | False -- slowo klucz 
+-- data Bool = True | False 
 
 
 data BasicColors = Red | Blue | Green
