@@ -63,6 +63,8 @@ data List a = EmptyList | Head a (List a)
   --deriving Eq
 --  deriving Show
 
+
+-- TODO: Poprawić definicję instancji Show. Powód: teraz jest brzydko
 instance (Show a) => Show (List a) where 
   show EmptyList = ""
   show (Head a list) = show a ++ "," ++ show list 
@@ -103,7 +105,7 @@ instance Functor List where
   fmap _ EmptyList = EmptyList 
   fmap f (Head a list) = Head (f a) (fmap f list)
 
-
+-- TODO: dokończyć definicję instancji
 instance Semigroup (List a) where 
-  -- dokonczyc 
 
+instance Monoid (List a) where 
