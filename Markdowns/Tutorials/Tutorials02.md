@@ -62,6 +62,7 @@
     - `myMap`: Funkcję analogiczną do `map`.  
     - `myFoldr`: Funkcję złożenia prawego (`foldr`), która potrafi działać na nieskończonych listach, jeśli to możliwe.  
     - `myFilter`: Funkcję analogiczną do `filter`.  
+    Następnie zdefiniuj instancje `Functor, Foldable` dla `Mylist`.
 
 9. **Reprezentacja grafu i algorytmy**  
     Zdefiniuj algebryczny typ danych reprezentujący graf nieskierowany, w którym wierzchołki mogą 
