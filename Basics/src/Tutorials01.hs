@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+
 module Tutorials01 where
 
 -- # List comprehensions
@@ -19,8 +20,8 @@ pythagoreanTriples n =
 --    dla których suma `x + y` jest liczbą pierwszą.
 
 isPrime :: Int -> Bool
-isPrime n = length (filter (\x -> mod n x == 0) [1..n]) == 2
-primeSumPairs list = [(a,b) | a <- list, b <- list, a < b, isPrime $ a + b] 
+isPrime n = length (filter (\x -> mod n x == 0) [1 .. n]) == 2
+primeSumPairs list = [(a, b) | a <- list, b <- list, a < b, isPrime $ a + b]
 
 -- 3. **Wyodrębnianie podłańcuchów**
 --    Napisz funkcję `substrings :: String -> [String]`, która zwraca listę wszystkich niepustych
@@ -29,15 +30,17 @@ primeSumPairs list = [(a,b) | a <- list, b <- list, a < b, isPrime $ a + b]
 --    list comprehensions do wygenerowania wszystkich podłańcuchów.
 
 substrings :: String -> [String]
-substrings string = [take l (drop s string) |  s <- [0..length string - 1], 
-                                               l <- [1..length string -s] ] 
+substrings string =
+    [ take l (drop s string) | s <- [0 .. length string - 1], l <- [1 .. length string - s]
+    ]
+
 -- 4. **Pary dzielników**
 --    Napisz funkcję `divisorPairs :: [Int] -> [(Int, Int)]`, która
 --    przyjmuje listę liczb całkowitych i zwraca wszystkie różne pary `(x, y)`
 --    (przy założeniu, że `x ≠ y`), dla których `x` dzieli `y` bez reszty (tj. `y mod x == 0`).
 
 divisorPairs :: [Int] -> [(Int, Int)]
-divisorPairs list = [(x,y) | x <- list , y <- list, x /= y, y `mod` x == 0 ] 
+divisorPairs list = [(x, y) | x <- list, y <- list, x /= y, y `mod` x == 0]
 
 -- 5. **Kombinacje**
 --     Napisz funkcję
@@ -50,73 +53,68 @@ divisorPairs list = [(x,y) | x <- list , y <- list, x /= y, y `mod` x == 0 ]
 combinations :: Int -> [a] -> [[a]]
 combinations 0 _ = [[]]
 combinations _ [] = []
-combinations k (x:xs) = [ x:comb | comb <- combinations (k-1) xs ] ++ combinations k xs
+combinations k (x : xs) = [x : comb | comb <- combinations (k - 1) xs] ++ combinations k xs
 
 --
 -- # Leniwa/gorliwa ewaluacja, `seq` i bang patterns
 --
--- 6. **Ścisła suma z użyciem `seq`**  
---    Napisz funkcję `strictSum :: [Int] -> Int`, która oblicza sumę listy liczb całkowitych, 
---    używając `seq` do wymuszenia ewaluacji akumulatora na każdym kroku. 
+-- 6. **Ścisła suma z użyciem `seq`**
+--    Napisz funkcję `strictSum :: [Int] -> Int`, która oblicza sumę listy liczb całkowitych,
+--    używając `seq` do wymuszenia ewaluacji akumulatora na każdym kroku.
 --    Porównaj jej działanie z naiwną, leniwą implementacją sumowania.
 
-sumLazyNonTail :: [Int] -> Int 
-sumLazyNonTail [] = 0 
-sumLazyNonTail (x:xs) = x + sumLazyNonTail xs
+sumLazyNonTail :: [Int] -> Int
+sumLazyNonTail [] = 0
+sumLazyNonTail (x : xs) = x + sumLazyNonTail xs
 
-sumLazy :: [Int] -> Int 
-sumLazy list = go list 0 
-  where 
+sumLazy :: [Int] -> Int
+sumLazy list = go list 0
+  where
     go :: [Int] -> Int -> Int
-    go [] s = s 
-    go (x:xs) s = go xs ( x + s)
+    go [] s = s
+    go (x : xs) s = go xs (x + s)
 
-
-sum :: [Int] -> Int 
-sum list = go list 0 
-  where 
+sum :: [Int] -> Int
+sum list = go list 0
+  where
     go :: [Int] -> Int -> Int
-    go [] !s = s 
-    go (x:xs) !s = go xs ( x + s)
+    go [] !s = s
+    go (x : xs) !s = go xs (x + s)
 
-
-sumSeq :: [Int] -> Int 
-sumSeq list = go list 0 
-  where 
+sumSeq :: [Int] -> Int
+sumSeq list = go list 0
+  where
     go :: [Int] -> Int -> Int
-    go [] s = s 
-    go (x:xs) s = let s' = s `seq` x + s in go xs s'
+    go [] s = s
+    go (x : xs) s = let s' = s `seq` x + s in go xs s'
 
+-- 7. **Rekurencyjna funkcja silnia z użyciem bang patterns**
+--    Napisz rekurencyjną funkcję `factorial :: Int -> Int`, która oblicza silnię danej liczby.
+--    Użyj bang patterns w akumulatorze.
 
--- 7. **Rekurencyjna funkcja silnia z użyciem bang patterns**  
---    Napisz rekurencyjną funkcję `factorial :: Int -> Int`, która oblicza silnię danej liczby. 
---    Użyj bang patterns w akumulatorze. 
+factorialNaive :: Int -> Int
+factorialNaive 0 = 1
+factorialNaive !n = n * factorialNaive (n - 1)
 
-factorialNaive :: Int -> Int 
-factorialNaive 0 = 1 
-factorialNaive !n = n * factorialNaive (n-1)
+factorial n = go n 1
+  where
+    go 0 acc = acc
+    go n !acc = go (n - 1) (n * acc)
 
-factorial n = go n 1 
-  where 
-    go 0 acc = acc 
-    go n !acc = go (n-1) (n*acc) 
-
-
--- 8. **Wymuszanie ewaluacji elementów krotki**  
---    Napisz funkcję `forceTuple :: (Int, Int) -> Int`, która przyjmuje krotkę dwóch liczb całkowitych, 
---    wymusza ewaluację obu elementów za pomocą `seq`, a następnie zwraca ich sumę. 
+-- 8. **Wymuszanie ewaluacji elementów krotki**
+--    Napisz funkcję `forceTuple :: (Int, Int) -> Int`, która przyjmuje krotkę dwóch liczb całkowitych,
+--    wymusza ewaluację obu elementów za pomocą `seq`, a następnie zwraca ich sumę.
 --    Wyjaśnij, dlaczego wymuszanie ewaluacji może być konieczne w niektórych sytuacjach.
 --
--- 9. **Liczby Fibonacciego z `seq` vs. bang patterns**  
---    Zaimplementuj dwie wersje generatora liczb Fibonacciego:  
---    - Pierwsza wersja wykorzystuje `seq` do wymuszenia ewaluacji w funkcji pomocniczej.  
---    - Druga wersja używa bang patterns w argumentach funkcji pomocniczej.  
+-- 9. **Liczby Fibonacciego z `seq` vs. bang patterns**
+--    Zaimplementuj dwie wersje generatora liczb Fibonacciego:
+--    - Pierwsza wersja wykorzystuje `seq` do wymuszenia ewaluacji w funkcji pomocniczej.
+--    - Druga wersja używa bang patterns w argumentach funkcji pomocniczej.
 --
--- 10. **Unikanie wycieków pamięci w funkcji rekurencyjnej**  
---     Napisz funkcję `strictRecursive :: Int -> Int`, która oblicza wynik przy użyciu rekurencji, 
---     gdzie leniwa ewaluacja mogłaby prowadzić do wycieków pamięci. 
---     Zrefaktoryzuj funkcję, używając `seq` lub bang patterns, aby wymusić ścisłą ewaluację. 
+-- 10. **Unikanie wycieków pamięci w funkcji rekurencyjnej**
+--     Napisz funkcję `strictRecursive :: Int -> Int`, która oblicza wynik przy użyciu rekurencji,
+--     gdzie leniwa ewaluacja mogłaby prowadzić do wycieków pamięci.
+--     Zrefaktoryzuj funkcję, używając `seq` lub bang patterns, aby wymusić ścisłą ewaluację.
 --
 --
 --
-

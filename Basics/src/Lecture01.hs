@@ -1,5 +1,4 @@
-module Lecture01 where 
-
+module Lecture01 where
 
 -- luzne kody z wykladu pierwszego
 quicksort :: (Ord a) => [a] -> [a]
