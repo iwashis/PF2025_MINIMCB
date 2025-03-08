@@ -24,16 +24,17 @@ quickSort (x : xs) = quickSort left ++ [x] ++ quickSort right
     right = filter (> x) xs
 test2 = quickSort [3, 2, 1, 4, 5] :: [Int]
 
-data Stack a = Ok a | Unsorted [a]
+
+data Do a b = Done a | Undone b  -- izomorficzne z Either a b
 
 quickSortTail :: (Ord a) => [a] -> [a]
-quickSortTail list = go [Unsorted list] []
+quickSortTail list = go [Undone list] []
   where
     go [] xs = xs
-    go ((Ok a) : stack) xs = go stack (a : xs)
-    go ((Unsorted []) : stack) xs = go stack xs
-    go ((Unsorted [a]) : stack) xs = go ((Ok a) : stack) xs
-    go ((Unsorted (a : as)) : stack) xs = go ((Unsorted right) : Ok a : (Unsorted left) : stack) xs
+    go ((Done a) : stack) xs = go stack (a : xs)
+    go ((Undone []) : stack) xs = go stack xs
+    go ((Undone [a]) : stack) xs = go (Done a : stack) xs
+    go ((Undone (a : as)) : stack) xs = go (Undone right : Done a : Undone left : stack) xs
       where
         left = [b | b <- as, b <= a]
         right = [b | b <- as, b > a]
@@ -107,14 +108,13 @@ exampleTree2 =
         (Node 5 Empty (Node 7 Empty Empty))
         (Node 20 (Node 13 Empty Empty) Empty)
 
-data Stack5 a = Ok5 a | Unvisited (Tree a)
 preorder :: Tree a -> [a]
-preorder tree = go [Unvisited tree] []
+preorder tree = go [Undone tree] []
   where 
     go [] xs = xs 
-    go ((Ok5 a):stack) xs = go stack (a : xs)
-    go ((Unvisited Empty):stack) xs = go stack xs 
-    go ((Unvisited (Node x left right)):stack) xs = go (Unvisited right : Unvisited left : Ok5 x  : stack) xs 
+    go ((Done a):stack) xs = go stack (a : xs)
+    go ((Undone Empty):stack) xs = go stack xs 
+    go ((Undone (Node x left right)):stack) xs = go (Undone right : Undone left : Done x  : stack) xs 
 
 -- # ADT i typeclassy
 --
