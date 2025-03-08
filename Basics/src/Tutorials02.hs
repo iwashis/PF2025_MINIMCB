@@ -22,7 +22,7 @@ quickSort (x : xs) = quickSort left ++ [x] ++ quickSort right
   where
     left = filter (<= x) xs
     right = filter (> x) xs
-test2 = quickSort [3, 2, 1, 4, 5] :: [Int]
+
 
 
 data Do a b = Done a | Undone b  -- izomorficzne z Either a b
@@ -69,11 +69,13 @@ powerSet ls = go ls [[]]
 --     `sumNested :: Num a => NestedList a -> a`,
 --     która oblicza sumę wszystkich elementów w zagnieżdżonej liście.
 
-data Bin = TuSaInty Int | ATuFloaty Float
 
 data NestedList a = Elem a | List [NestedList a]
     deriving (Show)
+
+example1 :: NestedList Int
 example1 = Elem 4
+example2 :: NestedList Int
 example2 = List [Elem 5, List [Elem 5, Elem 7]]
 
 sumNested :: (Num a) => NestedList a -> a
@@ -102,6 +104,7 @@ sumNested nestedList = go [nestedList] 0
 
 data Tree a = Empty | Node a (Tree a) (Tree a)
 
+exampleTree2 :: Tree Int
 exampleTree2 =
     Node
         3
@@ -156,12 +159,16 @@ preorder tree = go [Undone tree] []
 --     `data T a = EmptyT | LeafT a | InnerT (T a) (T a)`
 
 data T a = EmptyT | LeafT a | InnerT (T a) (T a)
+
 instance (Show a) => Show (T a) where
   show EmptyT = ""
   show (LeafT x) = show x 
-  show (InnerT left right) = show left ++ ", " ++ show right
+  show (InnerT left right) = let 
+      l = show left 
+      r = show right 
+    in l ++ (if r /= "" then ", " ++ r else "")
 
 
-
+exampleTree3 :: T Int
 exampleTree3 = InnerT (LeafT 10) (InnerT (LeafT 13) (LeafT 14))
 
