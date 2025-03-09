@@ -25,16 +25,16 @@ quickSort (x : xs) = quickSort left ++ [x] ++ quickSort right
 
 
 
-data Do a b = Done a | Undone b  -- izomorficzne z Either a b
+data ActionState a b = Completed a | Pending b  -- izomorficzne z Either a b
 
 quickSortTail :: (Ord a) => [a] -> [a]
-quickSortTail list = go [Undone list] []
+quickSortTail list = go [Pending list] []
   where
     go [] xs = xs
-    go ((Done a) : stack) xs = go stack (a : xs)
-    go ((Undone []) : stack) xs = go stack xs
-    go ((Undone [a]) : stack) xs = go (Done a : stack) xs
-    go ((Undone (a : as)) : stack) xs = go (Undone right : Done a : Undone left : stack) xs
+    go ((Completed a) : stack) xs = go stack (a : xs)
+    go ((Pending []) : stack) xs = go stack xs
+    go ((Pending [a]) : stack) xs = go (Completed a : stack) xs
+    go ((Pending (a : as)) : stack) xs = go (Pending right : Completed a : Pending left : stack) xs
       where
         left = [b | b <- as, b <= a]
         right = [b | b <- as, b > a]
@@ -112,10 +112,10 @@ exampleTree2 =
         (Node 20 (Node 13 Empty Empty) Empty)
 
 preorder :: Tree a -> [a]
-preorder tree = go [Undone tree] []
+preorder tree = go [Pending tree] []
   where 
     go [] xs = xs 
-    go ((Done a):stack) xs = go stack (a : xs)
-    go ((Undone Empty):stack) xs = go stack xs 
-    go ((Undone (Node x left right)):stack) xs = go (Undone right : Undone left : Done x  : stack) xs 
+    go ((Completed a):stack) xs = go stack (a : xs)
+    go ((Pending Empty):stack) xs = go stack xs 
+    go ((Pending (Node x left right)):stack) xs = go (Pending right : Pending left : Completed x  : stack) xs 
 
