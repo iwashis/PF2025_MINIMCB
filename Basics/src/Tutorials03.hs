@@ -43,12 +43,14 @@ module Tutorials03 where
 data T a = EmptyT | LeafT a | InnerT (T a) (T a)
 
 instance (Show a) => Show (T a) where
-  show EmptyT = ""
-  show (LeafT x) = show x 
-  show (InnerT left right) = let 
-      l = show left 
-      r = show right 
-    in l ++ (if r /= "" then ", " ++ r else "")
+  show tree = "{" ++ go tree ++ "}" 
+    where 
+      go EmptyT = ""
+      go (LeafT x) = show x 
+      go (InnerT left right) = let 
+          l = go left 
+          r = go right 
+        in l ++ (if r /= "" then ", " ++ r else "")
 
 
 exampleTree3 :: T Int
