@@ -33,9 +33,9 @@
    Zaimplementuj funkcję `unfoldl :: (b -> Maybe (b, a)) -> b -> [a]`, która jest odwrotnością `foldl` - 
    generuje listę z początkowego stanu. Użyj jej do implementacji:
    - `countdown :: Int -> [Int]` - generuje odliczanie od n do 1
-   - `fib :: Int -> [Integer]` - generuje n pierwszych liczb Fibonacciego
+   - `fib :: Int -> [Int]` - generuje n pierwszych liczb Fibonacciego
    - `iterate' :: (a -> a) -> a -> [a]` - własna implementacja standardowej funkcji `iterate`
-   - `decToBin :: Integer -> [Int]` - konwertuje liczbę dziesiętną na binarną reprezentację (listę 0 i 1)
+   - `decToBin :: Int -> [Int]` - konwertuje liczbę dziesiętną na binarną reprezentację (listę 0 i 1)
 
 6. **Zaawansowana transformacja danych**  
 
