@@ -67,8 +67,6 @@
     - `backtracking :: [a] -> Cont ([a] -> [a]) a` - mechanizmu do implementacji nawrotów (backtracking)
       w algorytmach przeszukiwania
     
-    Zademonstruj, jak monada `Cont` może być użyta do implementacji złożonych struktur sterowania, takich jak 
-    przeszukiwanie z nawrotami, które nie są łatwo osiągalne w standardowym kodzie funkcyjnym.
 
 8. **Monada Free i Domain Specific Languages**  
 
