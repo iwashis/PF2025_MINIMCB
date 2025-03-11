@@ -120,7 +120,3 @@
       ```
       która transferuje środki między dwoma kontami, obsługując przy tym odpowiednio błędy 
       (niewystarczające środki, nieistniejące konto itp.)
-    
-    Wyjaśnij, jakie są zalety używania monady Free do definiowania DSL i jak umożliwia ona oddzielenie 
-    definicji operacji od ich interpretacji.
-
