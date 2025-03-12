@@ -8,6 +8,55 @@ Wykład 4
 ## Kod wykładu 
 Basics/Lecture04.hs
 
+
+---
+
+# Funktory Aplikatywne (Applicative)
+
+Zanim przejdziemy do monad, warto zrozumieć functory aplikatywne, które są istotnym ogniwem pośrednim w hierarchii typów.
+
+```haskell
+class Functor f => Applicative f where
+  pure  :: a -> f a
+  (<*>) :: f (a -> b) -> f a -> f b
+```
+
+Funktor aplikatywny to funktor rozszerzony o dwie operacje:
+- `pure` - umieszcza wartość w kontekście (podobnie jak późniejszy `return`)
+- `(<*>)` - aplikuje funkcję znajdującą się w kontekście do wartości w kontekście
+
+## Aksjomaty dla Applicative:
+```haskell
+pure id <*> v = v                            -- tożsamość
+pure (.) <*> u <*> v <*> w = u <*> (v <*> w) -- kompozycja
+pure f <*> pure x = pure (f x)               -- homomorfizm
+u <*> pure y = pure ($ y) <*> u              -- zamiana
+```
+
+---
+
+# Przykłady Applicative
+
+## Maybe jako Applicative:
+```haskell
+instance Applicative Maybe where
+  pure = Just
+  
+  Nothing <*> _ = Nothing
+  (Just f) <*> something = fmap f something
+```
+
+## Wykorzystanie:
+```haskell
+-- Połączenie dwóch wartości Maybe
+liftA2 :: Applicative f => (a -> b -> c) -> f a -> f b -> f c
+liftA2 f x y = f <$> x <*> y
+
+-- Przykład:
+createUser :: Maybe String -> Maybe Int -> Maybe User
+createUser name age = liftA2 User name age
+```
+
 ---
 
 # Monady!
