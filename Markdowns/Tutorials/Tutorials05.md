@@ -61,12 +61,30 @@
     - `runCont :: Cont r a -> (a -> r) -> r`, która uruchamia kontynuację z podaną funkcją końcową.
     
     Użyj tej monady do zaimplementowania:
-    
-    - `abort :: Cont r a -> r` - przerywanie obliczeń i natychmiastowe zwracanie wyniku
-    - `exceptions :: Cont (Either String a) a -> Either String a` - prostego mechanizmu obsługi wyjątków
-    - `backtracking :: [a] -> Cont ([a] -> [a]) a` - mechanizmu do implementacji nawrotów (backtracking)
-      w algorytmach przeszukiwania
-    
+
+   **Abort - przerywanie obliczeń**  
+   Zaimplementuj funkcję `abort :: r -> Cont r a`, która natychmiast przerywa obliczenia i zwraca podany wynik.
+   
+   Napisz funkcję `factorialWithAbort :: Integer -> Cont Integer Integer`, która oblicza silnię liczby całkowitej, ale przerywa obliczenia z kodem błędu:
+   * `-1` gdy argument jest ujemny
+   * `-2` gdy argument jest większy niż 20
+
+   **Exceptions - obsługa wyjątków**  
+   Zaimplementuj prosty mechanizm obsługi wyjątków za pomocą funkcji:
+   * `exceptions :: Cont (Either String a) a -> Either String a` - uruchamia obliczenia, które mogą zgłaszać wyjątki
+   * `throwError :: String -> Cont (Either String a) b` - zgłasza wyjątek z komunikatem
+   * `catchError :: Cont (Either String a) a -> (String -> Cont (Either String a) a) -> Cont (Either String a) a` - obsługuje wyjątki
+
+   Stwórz prosty ewaluator wyrażeń arytmetycznych obsługujący operacje dodawania, mnożenia i dzielenia oraz zgłaszający wyjątek przy próbie dzielenia przez zero.
+
+   **Backtracking - mechanizm nawrotów**  
+   Zaimplementuj funkcję `backtracking :: [a] -> Cont ([a] -> [a]) a`, która pozwala na implementację algorytmów z nawrotami.
+
+   Użyj mechanizmu backtrackingu do:
+   * Znalezienia wszystkich trójek pitagorejskich o wartościach nieprzekraczających podanego ograniczenia 
+   * Rozwiązania problemu [n-Hetmanów](https://pl.wikipedia.org/wiki/Problem_ośmiu_hetmanów) dla szachownicy o zadanym rozmiarze
+
+   
 
 8. **Monada Free i Domain Specific Languages**  
 
