@@ -34,14 +34,14 @@
 
    Zaimplementuj funkcje `safeTail :: [a] -> Maybe [a]` i `safeHead :: [a] -> Maybe a`, 
    które bezpiecznie zwracają ogon i głowę listy, obsługując przypadek pustej listy. 
-   Następnie użyj operatora kleisli composition (`>=>`) do stworzenia funkcji `safeSecond :: [a] -> Maybe a`, 
+   Następnie użyj operatora Kleisli composition (`>=>`) do zdefiniowania funkcji `safeSecond :: [a] -> Maybe a`, 
    która bezpiecznie zwraca drugi element listy.
 
 6. **Monada Writer do akumulacji wyników**  
     
-   Zaimplementuj funkcję `countNodes :: Tree a -> Writer Sum Int`, która liczy węzły w drzewie binarnym, 
+   Zaimplementuj funkcję `countNodes :: Tree a -> Writer (Sum Int) Int`, która liczy węzły w drzewie binarnym, 
    używając monady Writer do akumulacji sumy. Typ drzewa zdefiniuj jako 
-   `data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)`. 
+   `data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)` oraz do rozwiazania uzyj funkcji `tell`. 
 
 ## Egzotyczne monady - dodatkowe zadania
 
