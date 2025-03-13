@@ -98,11 +98,13 @@
     Następnie utwórz prosty język do modelowania transakcji finansowych:
     
     ```haskell
+    type AccountID = Int 
+
     data FinancialF next = 
-        Deposit Int next 
-      | Withdraw Int next 
-      | CheckBalance (Int -> next)
-      | Transfer Int String next
+        Deposit AccountID Int next 
+      | Withdraw AccountID Int next 
+      | CheckBalance AccountID (Int -> next)
+      | Transfer AccountID Int AccountID next
       | Fail String
       deriving Functor
     
@@ -113,16 +115,16 @@
     
     - Funkcje pomocnicze: 
       ```haskell
-      deposit :: Int -> Financial ()
-      withdraw :: Int -> Financial ()
-      checkBalance :: Financial Int
-      transfer :: Int -> String -> Financial ()
+      deposit :: AccountID -> Int -> Financial ()
+      withdraw :: AccountID -> Int -> Financial ()
+      checkBalance :: AccountID -> Financial Int
+      transfer :: AccountID -> Int -> AccountID -> Financial ()
       failWith :: String -> Financial a
       ```
     
     - Interpreter dla tego języka, który wykonuje operacje na rzeczywistym stanie:
       ```haskell
-      runFinancial :: Financial a -> StateT (M.Map String Int) (Either String) a
+      runFinancial :: Financial a -> StateT (M.Map AccountID Int) (Either String) a
       ```
     
     - Interpreter do testowania, który zamiast wykonywać operacje, zapisuje je jako logi:
@@ -132,7 +134,7 @@
     
     - Zaimplementuj bardziej złożoną operację używającą monady Free:
       ```haskell
-      transferBetweenAccounts :: Int -> String -> String -> Financial ()
+      transferBetweenAccounts :: AccountID -> Int -> AccountID -> Financial ()
       ```
       która transferuje środki między dwoma kontami, obsługując przy tym odpowiednio błędy 
       (niewystarczające środki, nieistniejące konto itp.)
