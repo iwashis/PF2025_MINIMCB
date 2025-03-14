@@ -12,11 +12,10 @@
    data Tree a = Node a [Tree a]
    ```
 
-   Napisz instancje `Foldable` dla typu `Tree a` a nastepnie użyj jej do implementacji:
+   Napisz instancje `Functor` oraz `Foldable` dla typu `Tree a` a nastepnie użyj ich do implementacji:
    - `treeSum :: Num a => Tree a -> a` - sumuje wszystkie wartości w drzewie
    - `treeDepth :: Tree a -> Int` - znajduje głębokość drzewa
    - `treeToList :: Tree a -> [a]` - konwertuje drzewo do listy (w porządku pre-order)
-   - `treeMap :: (a -> b) -> Tree a -> Tree b` - aplikuje funkcję do każdego węzła drzewa
 
 
 3. **Fold z kontrolą akumulacji**  
@@ -37,14 +36,14 @@
    - `iterate' :: (a -> a) -> a -> [a]` - własna implementacja standardowej funkcji `iterate`
    - `decToBin :: Int -> [Int]` - konwertuje liczbę dziesiętną na binarną reprezentację (listę 0 i 1)
 
-6. **Zaawansowana transformacja danych**  
+5. **Zaawansowana transformacja danych**  
 
    Napisz funkcję `foldTransform :: (a -> b -> c -> c) -> c -> [a] -> [b] -> c`, która łączy 
    dwie listy, stosując do nich funkcję trójargumentową i akumulator. Użyj jej do implementacji:
    - `zipFoldl :: (c -> a -> b -> c) -> c -> [a] -> [b] -> c` - podobne do `zipWith`, ale z akumulacją
    - `matrixMultiply :: Num a => [[a]] -> [[a]] -> [[a]]` - mnożenie macierzy przy użyciu foldów
 
-7. **Fold dla złożonych struktur danych**  
+6. **Fold dla złożonych struktur danych**  
 
    Zdefiniuj własną strukturę grafu:
    ```haskell
@@ -55,7 +54,7 @@
      między dwoma węzłami (algorytm Dijkstry)
    - `isConnected :: Ord a => Graph a -> Bool` - sprawdza, czy graf jest spójny
 
-8. **Uniwersalna funkcja fold**  
+7. **Uniwersalna funkcja fold**  
 
    Napisz funkcję `generalFold :: (a -> Either b c) -> ([c] -> b) -> [a] -> b`, która łączy elementy listy 
    w bardziej złożony sposób:
