@@ -1,5 +1,3 @@
-module Tutorials04 where
-
 -- # Foldables 
 --
 -- 1. **Implementacja map i filter za pomocą foldów**  
