@@ -27,10 +27,14 @@ library
   exposed-modules:
       Lecture01
       Lecture02
+      Lecture03
+      Lecture04
       Lib
       Tutorials01
       Tutorials02
       Tutorials03
+      Tutorials04
+      Tutorials05
   other-modules:
       Paths_Basics
   autogen-modules:

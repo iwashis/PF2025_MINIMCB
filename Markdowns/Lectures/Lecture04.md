@@ -56,6 +56,9 @@ liftA2 f x y = f <$> x <*> y
 createUser :: Maybe String -> Maybe Int -> Maybe User
 createUser name age = liftA2 User name age
 ```
+## Zadanie na wykład 
+
+Napisać instancję `Applicative` dla listy. 
 
 ---
 

@@ -1,0 +1,41 @@
+module Tutorials04 where
+
+-- # Foldables 
+--
+-- 1. **Implementacja map i filter za pomocą foldów**  
+--
+--    Zaimplementuj funkcje `myMap :: (a -> b) -> [a] -> [b]` oraz `myFilter :: (a -> Bool) -> [a] -> [a]` 
+--    używając zarówno `foldr` jak i `foldl`. Porównaj ich działanie i wydajność w kontekście leniwej ewaluacji. 
+--
+-- 2. **Niestandardowy fold dla drzew**  
+--
+--    Zdefiniuj typ danych dla drzewa wielokierunkowego:
+--    ```haskell
+--    data Tree a = Node a [Tree a]
+--    ```
+--
+--    Napisz instancje `Functor` oraz `Foldable` dla typu `Tree a` a nastepnie użyj ich do implementacji:
+--    - `treeSum :: Num a => Tree a -> a` - sumuje wszystkie wartości w drzewie
+--    - `treeDepth :: Tree a -> Int` - znajduje głębokość drzewa
+--    - `treeToList :: Tree a -> [a]` - konwertuje drzewo do listy (w porządku pre-order)
+--
+--
+-- 3. **Fold z kontrolą akumulacji**  
+--
+--    Zaimplementuj funkcję `foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c`, która 
+--    działa jak `foldl`, ale pozwala na przerwanie obliczenia w dowolnym momencie, zwracając aktualny akumulator 
+--    opakowany w `Left` lub finalny wynik w `Right`. Następnie użyj tej funkcji do implementacji:
+--    - `findFirstThat :: (a -> Bool) -> [a] -> Maybe a` - znajduje pierwszy element spełniający warunek
+--    - `takeWhileSum :: (Num a, Ord a) => a -> [a] -> [a]` - zwraca najdłuższy prefiks listy, którego suma nie przekracza podanej wartości
+--    - `findSequence :: Eq a => [a] -> [a] -> Maybe Int` - znajduje indeks pierwszego wystąpienia podlisty w liście
+--
+-- 4. **Odwracanie foldów**  
+--
+--    Zaimplementuj funkcję `unfoldl :: (b -> Maybe (b, a)) -> b -> [a]`, która jest odwrotnością `foldl` - 
+--    generuje listę z początkowego stanu. Użyj jej do implementacji:
+--    - `countdown :: Int -> [Int]` - generuje odliczanie od n do 1
+--    - `fib :: Int -> [Int]` - generuje n pierwszych liczb Fibonacciego
+--    - `iterate' :: (a -> a) -> a -> [a]` - własna implementacja standardowej funkcji `iterate`
+--    - `decToBin :: Int -> [Int]` - konwertuje liczbę dziesiętną na binarną reprezentację (listę 0 i 1)
+--
+

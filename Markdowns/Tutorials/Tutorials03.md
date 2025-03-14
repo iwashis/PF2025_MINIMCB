@@ -1,4 +1,3 @@
-
 # ADT i typeclassy
 
 1. **Słownik oparty na drzewie binarnym z balansowaniem**  
