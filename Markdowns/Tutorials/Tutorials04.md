@@ -7,7 +7,7 @@
 
 2. **Niestandardowy fold dla drzew**  
 
-   Zdefiniuj typ danych dla drzewa wielokierunkowego:
+   Zdefiniuj typ danych dla drzewa różanego [rose tree](https://en.wikipedia.org/wiki/Rose_tree):
    ```haskell
    data Tree a = Node a [Tree a]
    ```
@@ -43,18 +43,7 @@
    - `zipFoldl :: (c -> a -> b -> c) -> c -> [a] -> [b] -> c` - podobne do `zipWith`, ale z akumulacją
    - `matrixMultiply :: Num a => [[a]] -> [[a]] -> [[a]]` - mnożenie macierzy przy użyciu foldów
 
-6. **Fold dla złożonych struktur danych**  
-
-   Zdefiniuj własną strukturę grafu:
-   ```haskell
-   data Graph a = Graph [(a, [(a, Int)])]  -- (węzeł, lista sąsiadów z wagami krawędzi)
-   ```
-   Zaimplementuj instacje `Foldable` dla `Graph a`.  Użyj jej do implementacji:
-   - `findShortestPath :: Ord a => Graph a -> a -> a -> Maybe ([a], Int)` - znajduje najkrótszą ścieżkę 
-     między dwoma węzłami (algorytm Dijkstry)
-   - `isConnected :: Ord a => Graph a -> Bool` - sprawdza, czy graf jest spójny
-
-7. **Uniwersalna funkcja fold**  
+6. **Uniwersalna funkcja fold**  
 
    Napisz funkcję `generalFold :: (a -> Either b c) -> ([c] -> b) -> [a] -> b`, która łączy elementy listy 
    w bardziej złożony sposób:
