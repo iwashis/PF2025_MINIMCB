@@ -40,5 +40,5 @@
 
 5. **Znane typeclassy dla drzew** 
 
-    Zdefiniuj instancje `Show, Eq, Semigroup, Monoid, Foldable, Functor` dla parametrycznego typu danych 
+    Zdefiniuj instancje `Show, Eq, Foldable, Functor` dla parametrycznego typu danych 
     `data T a = EmptyT | LeafT a | InnerT (T a) (T a)`.
