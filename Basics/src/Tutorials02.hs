@@ -23,9 +23,7 @@ quickSort (x : xs) = quickSort left ++ [x] ++ quickSort right
     left = filter (<= x) xs
     right = filter (> x) xs
 
-
-
-data ActionState a b = Completed a | Pending b  -- izomorficzne z Either a b
+data ActionState a b = Completed a | Pending b -- izomorficzne z Either a b
 
 quickSortTail :: (Ord a) => [a] -> [a]
 quickSortTail list = go [Pending list] []
@@ -68,7 +66,6 @@ powerSet ls = go ls [[]]
 --     Następnie napisz tail-recursive funkcję:
 --     `sumNested :: Num a => NestedList a -> a`,
 --     która oblicza sumę wszystkich elementów w zagnieżdżonej liście.
-
 
 data NestedList a = Elem a | List [NestedList a]
     deriving (Show)
@@ -113,9 +110,8 @@ exampleTree2 =
 
 preorder :: Tree a -> [a]
 preorder tree = go [Pending tree] []
-  where 
-    go [] xs = xs 
-    go ((Completed a):stack) xs = go stack (a : xs)
-    go ((Pending Empty):stack) xs = go stack xs 
-    go ((Pending (Node x left right)):stack) xs = go (Pending right : Pending left : Completed x  : stack) xs 
-
+  where
+    go [] xs = xs
+    go ((Completed a) : stack) xs = go stack (a : xs)
+    go ((Pending Empty) : stack) xs = go stack xs
+    go ((Pending (Node x left right)) : stack) xs = go (Pending right : Pending left : Completed x : stack) xs
