@@ -15,8 +15,6 @@ module Tutorials03 where
 --     - *Aktualizacja*: Modyfikacja wartości przypisanej do klucza.
 --     - *Balansowanie*: Zaimplementuj procedurę balansowania (np. wykorzystując algorytm drzewa
 --         AVL lub czerwono-czarnego), aby drzewo pozostało zbalansowane po operacjach wstawiania i usuwania.
---
-
 data BST k v
     = Empty
     | BST
@@ -67,14 +65,15 @@ update BST{key, value, left, right} (k, v)
 
 data Expr a = Var a | Val Int | Add (Expr a) (Expr a) | Mul (Expr a) (Expr a)
 
+exampleExpr :: Expr String
 exampleExpr = Mul (Add (Var "x") (Val 5)) (Val 7)
-
 -- (x + 5)*7
+
 eval :: (a -> Int) -> Expr a -> Int
 eval context (Var x) = context x
 eval _ (Val i) = i
-eval context (Add l r) = (eval context l) + (eval context r)
-eval context (Mul l r) = (eval context l) * (eval context r)
+eval context (Add l r) = eval context l + eval context r
+eval context (Mul l r) = eval context l * eval context r
 
 derivative :: Expr a -> a -> Expr a
 derivative = undefined -- TODO
@@ -90,6 +89,7 @@ derivative = undefined -- TODO
 
 data MyList a = Nil | Cons a (MyList a)
 
+exampleList :: MyList Int
 exampleList = Cons 5 (Cons 6 Nil)
 
 myMap :: (a -> b) -> MyList a -> MyList b
@@ -111,14 +111,7 @@ instance Foldable MyList where
 --  `myFilter`: Funkcję analogiczną do `filter`.
 --
 
--- 4. **Reprezentacja grafu i algorytmy**
---
---     Zdefiniuj algebryczny typ danych reprezentujący graf nieskierowany, w którym wierzchołki mogą
---     przechowywać dowolne dane. Napisz funkcje, które:
---     - *Przeszukiwanie w głąb (DFS)*: Przemierzają graf, zaczynając od danego wierzchołka.
---     - *Wykrywanie cykli*: Sprawdzają, czy graf zawiera cykle.
---     - *Znajdowanie ścieżki*: Znajdują ścieżkę między dwoma wierzchołkami (jeśli taka istnieje).
---
+
 -- 5. **Znane typeclassy dla drzew**
 --
 --     Zdefiniuj instancje `Show, Eq, Semigroup, Monoid, Foldable, Functor` dla parametrycznego typu danych
