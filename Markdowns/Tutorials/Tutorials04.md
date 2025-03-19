@@ -16,7 +16,9 @@
    - `treeSum :: Num a => Tree a -> a` - sumuje wszystkie wartości w drzewie
    - `treeDepth :: Tree a -> Int` - znajduje głębokość drzewa
    - `treeToList :: Tree a -> [a]` - konwertuje drzewo do listy (w porządku pre-order)
-
+   ***Uwaga*** Część funkcjonalności wymienionych wyżej jest dostepna dla dowolnej instancji `Foldable` 
+   (np. `sum` czy `toList` z `Data.Foldable`). W powyższym zadaniu nie należy z nich korzystać, 
+   a zdefiniować implementacje od zera, używając jedynie z `foldl, foldr` lub `foldMap`.
 
 3. **Fold z kontrolą akumulacji**  
 
