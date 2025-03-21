@@ -55,8 +55,8 @@ Zaimplementuj funkcję:
 unfold :: (b -> Maybe (a, b)) -> b -> [a]
 ```
 gdzie `unfold` generuje listę z początkowego stanu.  
-Następnie użyj tych funkcji do implementacji:
-- `fibonacciSequence :: Int -> [Integer]` - generuje n pierwszych liczb Fibonacciego
+Następnie użyj jej do implementacji:
+- `fibonacciSequence :: Int -> [Int]` - generuje n pierwszych liczb Fibonacciego
 - `convertDecimalToBinary :: Int -> [Bool]` - konwertuje liczbę dziesiętną na jej postać w zapisie binarnym.
 
 
