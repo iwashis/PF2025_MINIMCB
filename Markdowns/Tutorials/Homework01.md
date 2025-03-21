@@ -1,4 +1,4 @@
-# Zadania Domowe z Haskella
+# Zadania Domowe z Haskella, część 1
 
 ## 1. Implementacja funkcji fold dla drzewa
 Zdefiniuj typ drzewa binarnego:
@@ -33,7 +33,7 @@ Zaimplementuj funkcje:
 - `differentiate :: Expression -> String -> Expression` - różniczkuje wyrażenie po nazwie zmiennej z drugiego argumentu, 
 
 ## 4. Generator liczb Fibonacciego z rekurencją ogonkową
-Napisz funkcję `fibTR :: Int -> Integer`, która oblicza n-tą liczbę Fibonacciego używając rekurencji ogonowej. 
+Napisz funkcję `fibTR :: Int -> Int`, która oblicza n-tą liczbę Fibonacciego używając rekurencji ogonowej. 
 
 
 ## 5. Implementacja [kopca binarnego](https://en.wikipedia.org/wiki/Binary_heap)
