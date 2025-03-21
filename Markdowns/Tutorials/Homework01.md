@@ -36,16 +36,19 @@ Zaimplementuj funkcje:
 ## 4. Generator liczb Fibonacciego z rekurencją ogonkową
 Napisz funkcję `fibTR :: Int -> Integer`, która oblicza n-tą liczbę Fibonacciego używając rekurencji ogonowej. 
 
-## 5. Implementacja kolejki priorytetowej
-Zaimplementuj kolejkę priorytetową używając kopca binarnego:
+
+## 5. Implementacja [kopca binarnego](https://en.wikipedia.org/wiki/Binary_heap)
+Zdefiniuj typ danych dla kopca binarnego (min-heap):
 ```haskell
-data PriorityQueue a = PQ [a]
+data Heap a = Empty | Node a (Heap a) (Heap a)
 ```
 Zaimplementuj następujące operacje:
-- `empty :: PriorityQueue a` - tworzy pustą kolejkę
-- `insert :: Ord a => a -> PriorityQueue a -> PriorityQueue a` - dodaje element do kolejki
-- `findMin :: PriorityQueue a -> Maybe a` - zwraca element o najwyższym priorytecie
-- `deleteMin :: Ord a => PriorityQueue a -> PriorityQueue a` - usuwa element o najwyższym priorytecie
+- `emptyHeap :: Heap a` - tworzy pusty kopiec
+- `insertHeap :: Ord a => a -> Heap a -> Heap a` - dodaje element do kopca
+- `findMinHeap :: Heap a -> Maybe a` - zwraca najmniejszy element z kopca
+- `deleteMinHeap :: Ord a => Heap a -> Heap a` - usuwa najmniejszy element z kopca
+- `heapify :: Ord a => [a] -> Heap a` - tworzy kopiec z listy elementów
+- `heapSort :: Ord a => [a] -> [a]` - sortuje listę używając kopca
 
 ## 6. Rozwijanie i zwijanie danych
 Zaimplementuj parę funkcji:
