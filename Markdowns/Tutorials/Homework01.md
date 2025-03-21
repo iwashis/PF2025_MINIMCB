@@ -50,15 +50,14 @@ Zaimplementuj następujące operacje:
 - `heapSort :: Ord a => [a] -> [a]` - sortuje listę używając kopca
 
 ## 6. Rozwijanie i zwijanie danych
-Zaimplementuj parę funkcji:
+Zaimplementuj funkcję:
 ```haskell
 unfold :: (b -> Maybe (a, b)) -> b -> [a]
-fold :: (a -> b -> b) -> b -> [a] -> b
 ```
-gdzie `unfold` generuje listę z początkowego stanu, a `fold` jest analogiczna do `foldl`. 
+gdzie `unfold` generuje listę z początkowego stanu.  
 Następnie użyj tych funkcji do implementacji:
 - `fibonacciSequence :: Int -> [Integer]` - generuje n pierwszych liczb Fibonacciego
-- `convertBinaryToDecimal :: [Int] -> Int` - konwertuje liczbę binarną (reprezentowaną jako lista bitów) na liczbę dziesiętną
+- `convertDecimalToBinary :: Int -> [Bool]` - konwertuje liczbę dziesiętną na jej postać w zapisie binarnym.
 
 
 ## 7. Graf i algorytmy grafowe
