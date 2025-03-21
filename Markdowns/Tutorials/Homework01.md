@@ -32,15 +32,11 @@ Zaimplementuj funkcje:
 - `evaluate :: [(String, Double)] -> Expression -> Double` - oblicza wartość wyrażenia przy danych wartościach zmiennych
 - `simplify :: Expression -> Expression` - upraszcza wyrażenie stosując podstawowe reguły algebry
 
-## 4. Implementacja map i filter za pomocą foldów
-Zaimplementuj funkcje `myMap :: (a -> b) -> [a] -> [b]` i `myFilter :: (a -> Bool) -> [a] -> [a]` używając `foldr`. 
-Następnie porównaj ich działanie z wbudowanymi funkcjami `map` i `filter`.
 
-
-## 5. Generator liczb Fibonacciego z rekurencją ogonkową
+## 4. Generator liczb Fibonacciego z rekurencją ogonkową
 Napisz funkcję `fibTR :: Int -> Integer`, która oblicza n-tą liczbę Fibonacciego używając rekurencji ogonowej. 
 
-## 6. Implementacja kolejki priorytetowej
+## 5. Implementacja kolejki priorytetowej
 Zaimplementuj kolejkę priorytetową używając kopca binarnego:
 ```haskell
 data PriorityQueue a = PQ [a]
@@ -51,7 +47,7 @@ Zaimplementuj następujące operacje:
 - `findMin :: PriorityQueue a -> Maybe a` - zwraca element o najwyższym priorytecie
 - `deleteMin :: Ord a => PriorityQueue a -> PriorityQueue a` - usuwa element o najwyższym priorytecie
 
-## 7. Rozwijanie i zwijanie danych
+## 6. Rozwijanie i zwijanie danych
 Zaimplementuj parę funkcji:
 ```haskell
 unfold :: (b -> Maybe (a, b)) -> b -> [a]
@@ -63,7 +59,7 @@ Następnie użyj tych funkcji do implementacji:
 - `convertBinaryToDecimal :: [Int] -> Int` - konwertuje liczbę binarną (reprezentowaną jako lista bitów) na liczbę dziesiętną
 
 
-## 8. Graf i algorytmy grafowe
+## 7. Graf i algorytmy grafowe
 Zdefiniuj typ reprezentujący graf:
 ```haskell
 data Graph a = Graph [(a, [a])]
