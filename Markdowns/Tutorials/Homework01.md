@@ -7,7 +7,7 @@ data Tree a = Empty | Node a (Tree a) (Tree a)
 ```
 Następnie zaimplementuj funkcję:
 ```haskell
-foldTree :: (a -> b -> b -> b) -> b -> Tree a -> b
+foldTree :: (a -> b -> b) -> b -> Tree a -> b
 ```
 która działa podobnie jak `foldr` dla list, ale dla drzew. Użyj tej funkcji do implementacji funkcji:
 - `sumTree :: Num a => Tree a -> a` - suma wszystkich wartości w drzewie
@@ -16,7 +16,7 @@ która działa podobnie jak `foldr` dla list, ale dla drzew. Użyj tej funkcji d
 
 ## 2. Rekurencja ogonowa w sortowaniu przez scalanie
 Zaimplementuj funkcję `tailMergeSort :: Ord a => [a] -> [a]` wykorzystującą algorytm sortowania przez 
-scalanie (merge sort), ale z użyciem rekurencji ogonowej. Upewnij się, że unikasz głębokiej rekurencji używając akumulatora.
+scalanie (merge sort), ale z użyciem rekurencji ogonowej. 
 
 ## 3. Kalkulator wyrażeń
 Zdefiniuj typ danych dla wyrażeń arytmetycznych:
