@@ -29,9 +29,8 @@ data Expression = Number Double
                | Divide Expression Expression
 ```
 Zaimplementuj funkcje:
-- `evaluate :: [(String, Double)] -> Expression -> Double` - oblicza wartość wyrażenia przy danych wartościach zmiennych
-- `simplify :: Expression -> Expression` - upraszcza wyrażenie stosując podstawowe reguły algebry
-
+- `evaluate :: [(String, Double)] -> Expression -> Double` - oblicza wartość wyrażenia przy danych wartościach zmiennych,
+- `differentiate :: Expression -> String -> Expression` - różniczkuje wyrażenie po nazwie zmiennej z drugiego argumentu, 
 
 ## 4. Generator liczb Fibonacciego z rekurencją ogonkową
 Napisz funkcję `fibTR :: Int -> Integer`, która oblicza n-tą liczbę Fibonacciego używając rekurencji ogonowej. 
