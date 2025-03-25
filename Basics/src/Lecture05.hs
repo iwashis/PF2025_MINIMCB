@@ -51,9 +51,11 @@ exampleList = do
   y <- ['a'..'z']
   return [x,y] 
 
-
--- Monada stanu: intro
+----------------------------------
+-- Monada stanu: Wprowadzenie
 -- (s x a)^s 
+----------------------------------
+
 newtype State s a = State { runState :: s -> (s,a)}
 
 -- rownowaznie mozemy tez:
@@ -77,10 +79,8 @@ instance Applicative (State s) where
     where 
       g s = (s'', z) -- :: (s, c)
         where 
-          x = snd $ f1 s
-          s' = fst $ f1 s
-          s'' = fst $ f2 s'
-          y = snd $ f2 s'
+          (s' , x) = f1 s
+          (s'', y) = f2 s'
           z = f x y 
 
 instance Monad (State s) where 
