@@ -52,7 +52,6 @@ instance Functor Tree where
  fmap f (Node x list) = Node (f x) (map (fmap f) list)
 
 instance Foldable Tree where
--- foldr (#) seed [a1,..an] = a1 # (a2 # ... (an # seed)) 
 -- ( a -> b -> b ) -> b -> Tree a -> b
   foldr f seed (Node x list) = f x (foldr (\a b ->  foldr f b a) seed list)
   -- (a -> m) -> Tree a -> m
@@ -91,16 +90,3 @@ instance Foldable Tree where
 --    - `zipFoldl :: (c -> a -> b -> c) -> c -> [a] -> [b] -> c` - podobne do `zipWith`, ale z akumulacją
 --    - `matrixMultiply :: Num a => [[a]] -> [[a]] -> [[a]]` - mnożenie macierzy przy użyciu foldów
 --
--- 6. **Uniwersalna funkcja fold**  
---
---    Napisz funkcję `generalFold :: (a -> Either b c) -> ([c] -> b) -> [a] -> b`, która łączy elementy listy 
---    w bardziej złożony sposób:
---    - Każdy element jest transformowany przez pierwszą funkcję
---    - Jeśli wynik jest `Left b`, ten element kończy akumulację i zwraca b
---    - Jeśli wynik jest `Right c`, c jest zbierane do listy
---    - Na końcu druga funkcja jest aplikowana do zebranej listy
---
---    Następnie użyj `generalFold` do implementacji:
---    - `takeUntil :: (a -> Bool) -> [a] -> [a]` - zbiera elementy aż do spełnienia predykatu
---    - `groupBySum :: (Num a, Ord a) => a -> [a] -> [[a]]` - grupuje elementy listy tak, aby suma każdej grupy
---      nie przekraczała zadanej wartości

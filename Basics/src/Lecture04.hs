@@ -135,3 +135,12 @@ tail' (_ : xs) = Just xs
 third = tail' >=> tail' >=> head'
 
 third_bind list = (tail' list >>= tail') >>= head'
+
+-- Notacja do:
+--tail' xs >>= \ys -> head' ys
+-- do 
+third_do list = do 
+  ys <- tail' list 
+  zs <- tail' ys 
+  head' zs
+-- third_bind list = (tail' list >>= \ys -> tail' ys) >>= \zs -> head' zs 
