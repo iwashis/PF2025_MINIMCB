@@ -6,12 +6,11 @@ Wykład 6
 
 
 ## Kod wykładu 
-Basics/Lecture05.hs -- kończymy pisanie State1 s a
 Basics/Lecture06.hs
 
 ---
 
-# State1 s a: jeszcze kilka słów
+# State s a: jeszcze kilka słów
 
 ## Przypomnienie z TK
 Mamy następującą jednoznaczną odpowiedniość
@@ -42,7 +41,6 @@ f" :: (x,s) -> (y,s)  .  st :: s -> (x,s)
 get :: State s s            -- \state   -> (state, state)
 put :: s -> State s ()      -- \st1 st2 -> ((), st1) 
 ```
-Dokończyć w pliku Lecture05!
 
 ---
 
