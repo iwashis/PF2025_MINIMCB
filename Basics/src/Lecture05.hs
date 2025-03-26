@@ -2,29 +2,35 @@
 {-# LANGUAGE TupleSections #-}
 module Lecture05 where
 
--- typ izomorficzny z [a]
--- MyList to własna implementacja listy, która ma tę samą strukturę co standardowa lista w Haskellu
-data MyList a = Nil | Con a (MyList a)
-    deriving (Show, Functor)
+import Lecture04 (MyList(..), concat')
+-- Nie musimy na nowo definicjowac MyList, bo pisalismy odpowiednie definicje 
+-- w trakcie wykladu 4. Jedyne co robimy to importujemy najwazniejsze funkcjonalnosci 
+-- powyzej. 
+--
+-- Przypomnienie czym jest MyList w komentarzu:
+-- -- typ izomorficzny z [a]
+-- -- MyList to własna implementacja listy, która ma tę samą strukturę co standardowa lista w Haskellu
+-- data MyList a = Nil | Con a (MyList a)
+--     deriving (Show, Functor)
+--
+-- -- concat' łączy dwie listy typu MyList
+-- -- Przykład: concat' (Con 1 (Con 2 Nil)) (Con 3 Nil) = Con 1 (Con 2 (Con 3 Nil))
+-- -- Jest to odpowiednik operatora (++) dla standardowych list
+-- concat' :: MyList a -> MyList a -> MyList a
+-- concat' Nil list2 = list2
+-- concat' (Con x xs) list2 = Con x (concat' xs list2)
 
--- concat' łączy dwie listy typu MyList
--- Przykład: concat' (Con 1 (Con 2 Nil)) (Con 3 Nil) = Con 1 (Con 2 (Con 3 Nil))
--- Jest to odpowiednik operatora (++) dla standardowych list
-concat' :: MyList a -> MyList a -> MyList a
-concat' Nil list2 = list2
-concat' (Con x xs) list2 = Con x (concat' xs list2)
-
-instance Applicative MyList where
-    -- pure tworzy listę zawierającą tylko jeden element
-    -- Przykład: pure 5 = Con 5 Nil
-    pure x = Con x Nil
-    
-    -- Implementacja operatora <*> dla MyList
-    -- Przykład: Con (+1) (Con (*2) Nil) <*> Con 3 (Con 4 Nil) = Con 4 (Con 5 (Con 6 (Con 8 Nil)))
-    Nil <*> _ = Nil
-    _ <*> Nil = Nil
-    (Con f fs) <*> args = fmap f args `concat'` (fs <*> args)
-
+-- instance Applicative MyList where
+--     -- pure tworzy listę zawierającą tylko jeden element
+--     -- Przykład: pure 5 = Con 5 Nil
+--     pure x = Con x Nil
+--
+--     -- Implementacja operatora <*> dla MyList
+--     -- Przykład: Con (+1) (Con (*2) Nil) <*> Con 3 (Con 4 Nil) = Con 4 (Con 5 (Con 6 (Con 8 Nil)))
+--     Nil <*> _ = Nil
+--     _ <*> Nil = Nil
+--     (Con f fs) <*> args = fmap f args `concat'` (fs <*> args)
+--
 -- Przykładowa lista liczb całkowitych
 -- exampleIntList = [1, 2]
 exampleIntList :: MyList Int

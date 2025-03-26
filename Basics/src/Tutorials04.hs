@@ -64,7 +64,12 @@ instance Foldable Tree where
 
 
 -- TODO: dokonczyc
---
+-- 
+
+main = print exampleTree
+
+
+
 -- 3. **Fold z kontrolą akumulacji**
 --
 --    Zaimplementuj funkcję `foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c`, która
