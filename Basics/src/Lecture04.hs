@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Lecture04 where
-import Control.Monad ((>=>), (>>=))
-import Prelude hiding ((>>=))
+import Control.Monad ((>=>)) 
 -- monada - funktor T: C -> C wyposażony w strukturę
 -- eta : x -> T x
 -- mu : T T x -> T x
