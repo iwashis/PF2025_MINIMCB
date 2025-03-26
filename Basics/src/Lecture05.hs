@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TupleSections #-}
 module Lecture05 where
 
 
@@ -19,11 +20,12 @@ instance Applicative MyList where
 exampleIntList :: MyList Int
 exampleIntList = Con 1 (Con 2 Nil)
 
+exampleStrList :: MyList String
 exampleStrList = Con "ala" (Con "maciej" (Con "tomek" Nil))
 
 
-f :: String -> Int -> (String , Int)
-f str i = (str,i)
+pair :: String -> Int -> (String , Int)
+pair str i = (str,i)
 
 instance Monad MyList where 
   return = pure 
@@ -31,13 +33,17 @@ instance Monad MyList where
   Nil >>= _ = Nil 
   (Con x xs) >>= f = concat' (f x) (xs >>= f) 
 
-triple = \x -> Con x (Con x (Con x Nil))
+triple :: a -> MyList a
+triple x = Con x (Con x (Con x Nil))
 
+expression :: MyList String
 expression = do 
-  x <- (Con "Bunny" Nil)
+  x <- Con "Bunny" Nil
   y <- triple x
   triple y
 
+
+fib :: [Integer]
 fib = 0 : 1 : ( do
                  (x,y) <- zip fib $ tail fib
                  return $ x + y
@@ -68,18 +74,20 @@ instance Functor (State s) where
 
 instance Applicative (State s) where 
   -- pure :: a -> State s a 
-  pure x = State (\s -> (s,x))
+  pure x = State (,x) -- funkcja (,x) to to samo co \s -> (s,x)
+  -- Teraz zdefiniujemy liftA2, ktorej typ w ogolnosci jest nastepujacy
   -- liftA2 :: (a -> b-> c) -> f a -> f b -> f c
+  liftA2 f (State f1) (State f2) = State g -- g :: s -> (s, c) 
   -- f  :: a -> b -> c 
   -- f1 :: s -> (s, a)
   -- f2 :: s -> (s, b)
-  liftA2 f (State f1) (State f2) = State g -- g :: s -> (s, c) 
     where 
-      g s = (s'', z) -- :: (s, c)
-        where 
-          (s' , x) = f1 s
-          (s'', y) = f2 s'
-          z = f x y 
+      g s = let 
+              (s' , x) = f1 s
+              (s'', y) = f2 s'
+              z = f x y 
+              in (s'', z) -- :: (s, c)
+          
 
 instance Monad (State s) where 
   -- state :: State s a, runState state :: s -> (s,a) 
