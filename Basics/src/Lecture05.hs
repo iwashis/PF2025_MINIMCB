@@ -1,7 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Lecture05 where
-import Lecture04 (g)
-import Data.Bifunctor (Bifunctor(bimap))
 
 
 -- typ izomorficzny z [a]
