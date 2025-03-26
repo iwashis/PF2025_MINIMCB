@@ -105,10 +105,6 @@ newtype State s a = State { runState :: s -> (s,a)}
 -- runState (State f) = f
 
 -- Implementacja funktora dla monady State
--- Pozwala na mapowanie funkcji na wynik obliczeń stanowych
--- Przykład: fmap (+1) (State $ \s -> (s+1, s*2)) to State, która:
---   1. Zwiększa stan o 1
---   2. Zwraca jako wynik podwojony stan powiększony o 1
 instance Functor (State s) where 
   -- fmap :: (a -> b) -> State s a -> State s b
   fmap f state = State $ (\(s,x) -> (s, f x)) . runState state 
