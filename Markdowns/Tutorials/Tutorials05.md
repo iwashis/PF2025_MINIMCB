@@ -16,7 +16,7 @@
 
 3. **Monada State do śledzenia stanu**  
 
-   Zdefiniuj funkcję `runningSum :: [Int] -> [Int]`, która dla listy liczb całkowitych zwraca listę sum bieżących.
+   Zdefiniuj funkcję `runningSum :: [Int] -> [Int]`, która dla listy liczb całkowitych zwraca listę sum częściowych.
    Przykładowo, dla listy `[1, 2, 3, 4]` wynikiem powinno być `[1, 3, 6, 10]`. Zaimplementuj tę funkcję 
    używając monady State, korzystając z operacji `get`, `put` i funkcji `runState` lub `evalState`.
 

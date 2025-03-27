@@ -1,6 +1,8 @@
 module Tutorials04 where
 
 import qualified Data.Monoid as M 
+import Data.Foldable (Foldable(fold))
+import Control.Concurrent (yield)
 -- # Foldables
 --
 -- 1. **Implementacja map i filter za pomocą foldów**
@@ -62,13 +64,21 @@ instance Foldable Tree where
 --    - `treeDepth :: Tree a -> Int` - znajduje głębokość drzewa
 --    - `treeToList :: Tree a -> [a]` - konwertuje drzewo do listy (w porządku pre-order)
 
+treeSum :: Num a => Tree a -> a
+treeSum tree = foldr (+) 0 tree
 
--- TODO: dokonczyc
--- 
+instance Semigroup Int where 
+  x <> y = x + y 
 
-main = print exampleTree
+instance Monoid Int where 
+  mempty = 0
+
+treeSum' :: Tree Int -> Int 
+treeSum' tree = foldMap id tree
 
 
+treeToList' :: Tree a -> [a]
+treeToList' tree = foldMap return tree -- return = \x -> [x]
 
 -- 3. **Fold z kontrolą akumulacji**
 --
@@ -79,6 +89,37 @@ main = print exampleTree
 --    - `takeWhileSum :: (Num a, Ord a) => a -> [a] -> [a]` - zwraca najdłuższy prefiks listy, którego suma nie przekracza podanej wartości
 --    - `findSequence :: Eq a => [a] -> [a] -> Maybe Int` - znajduje indeks pierwszego wystąpienia podlisty w liście
 --
+
+-- data Either a b = Left a | Right b
+foldWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c 
+foldWithControl f seed [] =  Left seed
+foldWithControl f seed (x:xs) = case f seed x of 
+  Left b  -> foldWithControl f b xs 
+  Right c -> Right c 
+
+-- () typ unit, ktory ma jeden konstruktor, ()
+-- () :: ()
+-- Maybe a = Just a | Nothing 
+-- Either () a = Left () | Right a 
+--
+toMaybe :: Either () a -> Maybe a 
+toMaybe (Left ()) = Nothing
+toMaybe (Right x) = Just x
+
+findFirstThat :: (a -> Bool) -> [a] -> Maybe a
+findFirstThat f list = toMaybe $ foldWithControl g () list 
+  where 
+    -- g :: () -> a -> Either () a
+    g () x = case f x of 
+      True  -> Right x
+      False -> Left () 
+
+takeWhileSum :: Int -> [Int] -> Either [Int] [Int]
+takeWhileSum max list = foldWithControl f [] list   -- takeWhileSum 10 [1,2,8,11] = Opakowane [1,2] 
+  where 
+  --  f :: (b -> a -> Either b c)
+    f acc x = if sum acc + x < max then Left $ acc ++ [x] else Right acc 
+
 -- 4. **Odwracanie foldów**
 --
 --    Zaimplementuj funkcję `unfoldl :: (b -> Maybe (b, a)) -> b -> [a]`, która jest odwrotnością `foldl` -
@@ -87,7 +128,28 @@ main = print exampleTree
 --    - `fib :: Int -> [Int]` - generuje n pierwszych liczb Fibonacciego
 --    - `iterate' :: (a -> a) -> a -> [a]` - własna implementacja standardowej funkcji `iterate`
 --    - `decToBin :: Int -> [Int]` - konwertuje liczbę dziesiętną na binarną reprezentację (listę 0 i 1)
---
+
+unfold :: (b -> Maybe (b,a)) -> b -> [a]
+unfold f state = go f state [] 
+  where 
+    go f state acc = case f state of 
+      Nothing -> acc
+      Just (state',obs) -> go f state' (acc ++ [obs]) 
+
+simpleAutomaton :: Char -> Maybe (Char, Int)
+simpleAutomaton 'x' = Just ('y',1)
+simpleAutomaton 'y' = Just ('z', 0)
+simpleAutomaton 'z' = Nothing
+simpleAutomaton _ = Nothing
+
+
+fib' :: Int -> [Int] 
+fib' n = unfold f state 
+  where 
+    f (_,_,0) = Nothing
+    f (x,y,m) = Just ((y, x + y,m-1), x)  
+    state = (0,1,n)
+
 -- 5. **Zaawansowana transformacja danych**  
 --
 --    Napisz funkcję `foldTransform :: (a -> b -> c -> c) -> c -> [a] -> [b] -> c`, która łączy 

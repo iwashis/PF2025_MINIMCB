@@ -7,18 +7,29 @@ module Tutorials05 where
 --    Następnie zaimplementuj funkcję `chainedDivision :: [Int] -> Maybe Int`, która przeprowadza sekwencję bezpiecznych 
 --    dzieleń, zaczynając od pierwszej liczby i dzieląc ją przez każdą kolejną. Użyj operatora `>>=` (bind).
 --
+
+
+
+
+
 -- 2. **List Monada i eksploracja ścieżek**  
 --
 --    Napisz funkcję `knights :: (Int, Int) -> [(Int, Int)]`, która dla danej pozycji skoczka na szachownicy 
 --    zwraca listę wszystkich możliwych ruchów skoczka. Następnie zaimplementuj funkcję `knightPaths :: Int -> (Int, Int) -> (Int, Int) -> [[(Int, Int)]]`, 
 --    która znajduje wszystkie możliwe ścieżki o długości `n` ruchów z jednej pozycji do drugiej. Wykorzystaj monadę list oraz 
 --    operator `>>=` do eksploracji wszystkich możliwych ścieżek.
---
+
+
+
+
 -- 3. **Monada State do śledzenia stanu**  
 --
---    Zdefiniuj funkcję `runningSum :: [Int] -> [Int]`, która dla listy liczb całkowitych zwraca listę sum bieżących.
+--    Zdefiniuj funkcję `runningSum :: [Int] -> [Int]`, która dla listy liczb całkowitych zwraca listę sum częściowych.
 --    Przykładowo, dla listy `[1, 2, 3, 4]` wynikiem powinno być `[1, 3, 6, 10]`. Zaimplementuj tę funkcję 
 --    używając monady State, korzystając z operacji `get`, `put` i funkcji `runState` lub `evalState`.
+
+import Lecture05
+
 --
 -- 4. **Implementacja własnej monady**  
 --
