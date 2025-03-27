@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Lecture02 where
+module Lecture02 () where
 
 -- Haskell ma wbudowane typy danych, np. Bool:
 -- data Bool = True | False

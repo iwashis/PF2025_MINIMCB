@@ -1,4 +1,4 @@
-module Tutorials05 where
+module Tutorials05 () where
 --
 -- 1. **Podstawy Monady Maybe**  
 --
@@ -28,7 +28,6 @@ module Tutorials05 where
 --    Przykładowo, dla listy `[1, 2, 3, 4]` wynikiem powinno być `[1, 3, 6, 10]`. Zaimplementuj tę funkcję 
 --    używając monady State, korzystając z operacji `get`, `put` i funkcji `runState` lub `evalState`.
 
-import Lecture05
 
 --
 -- 4. **Implementacja własnej monady**  

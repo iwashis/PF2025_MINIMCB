@@ -1,4 +1,4 @@
-module Lecture03 where
+module Lecture03 () where
 import qualified Data.Monoid as M
 
 -- Przypomnienie działania funkcji foldl i foldr:

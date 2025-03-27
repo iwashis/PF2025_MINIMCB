@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
-module Lecture04 where
+module Lecture04 (MyList(..),concat') where
 import Control.Monad ((>=>)) 
 -- monada - funktor T: C -> C wyposażony w strukturę
 -- eta : x -> T x

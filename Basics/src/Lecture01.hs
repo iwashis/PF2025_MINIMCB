@@ -1,4 +1,4 @@
-module Lecture01 where
+module Lecture01 () where
 
 
 -- Implementacja algorytmu quicksort w Haskellu

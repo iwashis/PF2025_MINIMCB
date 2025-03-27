@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Tutorials03 where
+module Tutorials03 () where
 
 -- # ADT i typeclassy
 --

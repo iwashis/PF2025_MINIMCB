@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TupleSections #-}
-module Lecture05 where
+module Lecture05 (State(..)) where
 
 import Lecture04 (MyList(..), concat')
 -- Nie musimy na nowo definicjowac MyList, bo pisalismy odpowiednie definicje 

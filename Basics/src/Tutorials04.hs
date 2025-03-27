@@ -1,4 +1,4 @@
-module Tutorials04 where
+module Tutorials04 () where
 
 import qualified Data.Monoid as M 
 -- # Foldables
@@ -140,7 +140,6 @@ simpleAutomaton 'y' = Just ('z', 0)
 simpleAutomaton 'z' = Nothing
 simpleAutomaton _ = Nothing
 -- sprawdzic czym  jest unfold simpleAutomaton 'x'
-
 fib' :: Int -> [Int] 
 fib' n = unfold f state 
   where 

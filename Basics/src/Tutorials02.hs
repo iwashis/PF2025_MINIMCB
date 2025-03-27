@@ -1,4 +1,4 @@
-module Tutorials02 where
+module Tutorials02 () where
 
 -- # Rekurencja ogonkowa
 --
