@@ -33,9 +33,6 @@ myFilter f list = foldl g [] list
 -- 2. **Niestandardowy fold dla drzew**
 --
 --    Zdefiniuj typ danych dla drzewa:
---    ```haskell
---    data Tree a = Node a [Tree a]
---    ```
 
 data Tree a = Node a [Tree a]
   deriving Show

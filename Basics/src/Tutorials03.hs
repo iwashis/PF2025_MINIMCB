@@ -15,21 +15,19 @@ module Tutorials03 () where
 --     - *Aktualizacja*: Modyfikacja wartości przypisanej do klucza.
 --     - *Balansowanie*: Zaimplementuj procedurę balansowania (np. wykorzystując algorytm drzewa
 --         AVL lub czerwono-czarnego), aby drzewo pozostało zbalansowane po operacjach wstawiania i usuwania.
+-- Solution 1: Change the data structure to avoid record syntax for sum types
+
+
 data BST k v
     = Empty
-    | BST
-        { key :: k
-        , value :: v
-        , left :: BST k v
-        , right :: BST k v
-        }
+    | Node k v (BST k v) (BST k v)
     deriving (Show)
 
 insert :: (Ord k) => BST k v -> (k, v) -> BST k v
-insert Empty (key, value) = BST{key, value, left = Empty, right = Empty}
-insert BST{key, value, left, right} (k, v)
-    | k < key = BST{key, value, left = insert left (k, v), right}
-    | otherwise = BST{key, value, left, right = insert right (k, v)}
+insert Empty (k, v) = Node k v Empty Empty
+insert (Node nodeKey nodeValue nodeLeft nodeRight) (k, v)
+    | k < nodeKey = Node nodeKey nodeValue (insert nodeLeft (k, v)) nodeRight
+    | otherwise = Node nodeKey nodeValue nodeLeft (insert nodeRight (k, v))
 
 fromList :: (Ord k) => [(k, v)] -> BST k v
 fromList = foldl insert Empty
@@ -39,18 +37,18 @@ example = [(1, 5), (4, 4), (3, 16), (2, 2)]
 
 find :: (Ord k) => BST k v -> k -> Maybe v
 find Empty _ = Nothing
-find BST{key, value, left, right} k
-    | k < key = find left k
-    | k > key = find right k
-    | otherwise = Just value
+find (Node nodeKey nodeValue nodeLeft nodeRight) k
+    | k < nodeKey = find nodeLeft k
+    | k > nodeKey = find nodeRight k
+    | otherwise = Just nodeValue
 
--- w tym przypadku zakladamy, ze klucze w drzewie sa unikatowe
+-- Zakladamy unikatowosc kluczy
 update :: (Ord k) => BST k v -> (k, v) -> BST k v
 update Empty _ = Empty
-update BST{key, value, left, right} (k, v)
-    | k < key = BST{key, value, left = update left (k, v), right}
-    | k > key = BST{key, value, left, right = update right (k, v)}
-    | otherwise = BST{key, value = v, left, right}
+update (Node nodeKey nodeValue nodeLeft nodeRight) (k, v)
+    | k < nodeKey = Node nodeKey nodeValue (update nodeLeft (k, v)) nodeRight
+    | k > nodeKey = Node nodeKey nodeValue nodeLeft (update nodeRight (k, v))
+    | otherwise = Node nodeKey v nodeLeft nodeRight
 
 -- TODO: usuwanie i balansowanie
 
