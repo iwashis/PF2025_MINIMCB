@@ -1,8 +1,17 @@
 module Lecture06 where 
 
 
+ -- a |-> (w,a) 
+ -- W - ustalone z gory 
+ -- T(A) = W x A
+ -- data, newtype, type
+data Writer w a =  Writer {runWriter :: (w,a)} 
+  deriving Show
 
-newtype Writer w b = Writer {runWriter :: (w,b)}
+exampleWriter :: Writer Int String 
+exampleWriter = Writer (1,"aaa")
+
+-- newtype Writer w a = Writer {runWriter :: (w,a)}
 -- ^ runWriter wydobywa wynik i log z obliczeń Writer
 {- 
 Diagram dla Monady Writer:
@@ -15,7 +24,11 @@ Diagram dla Monady Writer:
      │   │  w
      └───┘━━━▷
 
-
+struktura monady na Writer w a da nam mozliwosc skladania: 
+f : a -> Writer w b 
+g : b -> Writer w c
+------------------------
+f >=> g : a -> Writer w c
 Kompozycja f >=> g wygląda tak:
  
      ┌───┐  B  ┌───┐  C
@@ -31,7 +44,8 @@ Kompozycja f >=> g wygląda tak:
 
 instance Functor (Writer w) where
   -- fmap :: (a -> b) -> Writer w a -> Writer w b
-  fmap = undefined  -- Przekształci wartość, zachowując log
+  fmap f (Writer (w,x)) = Writer (w, f x) -- Przekształci wartość, zachowując log
+  -- fmap f writer = Writer $ (\(w,x) -> (w, f x)) (runWriter writer)  
 
 {-
   Instancja Funktor mapuje wartość, pozostawiając log bez zmian
@@ -59,18 +73,18 @@ instance (Monoid w) => Applicative (Writer w) where
        └─────┘━━━▷
               mempty (pusty log)
 -}
-  pure = undefined  -- Tworzy Writer z wartością i pustym logiem
+  pure x = Writer (mempty, x) -- Tworzy Writer z wartością i pustym logiem
   
   -- (<*>) :: Writer w (a -> b) -> Writer w a -> Writer w b
-  (<*>) = undefined  -- Zastosuje funkcję do wartości i połączy logi
+  ( Writer (w1, f) ) <*> (Writer (w2, x))  = Writer (w1 <> w2, f x)-- Zastosuje funkcję do wartości i połączy logi
+  -- (<*>) = ap
 
 
 instance (Monoid w) => Monad (Writer w) where
-  
   {-
     >>= (bind) diagram:
           ┌───────┐    
-  A       │       │  C  
+  A       │       │  B  
    ━━━━━━━▷   f   │━━━━━━━━━>
        w  │       │  w    w
    ━━┓    └───────┘━━━━O━━━━▷
@@ -79,7 +93,10 @@ instance (Monoid w) => Monad (Writer w) where
                połączone
   -}
   -- (>>=) :: Writer w a -> (a -> Writer w b) -> Writer w b
-  (>>=) = undefined  -- Połączy obliczenia i zgromadzi logi
+  (Writer (w1,x)) >>= f = Writer (w1 <> w2, y )-- Połączy obliczenia i zgromadzi logi
+    where
+      (w2, y) = runWriter $ f x
+      
 
 -- Podstawowe operacje Writer
 
@@ -88,14 +105,15 @@ instance (Monoid w) => Monad (Writer w) where
   
   Diagram tell:
      ┌────┐    
-     │tell│  ()  
-     │ w  │━━━>
+   w │tell│  ()  
+   -->    │━━━>
      │    │    
      └────┘━━━▷
               w
 -}
+-- data () = ()
 tell :: w -> Writer w ()
-tell = undefined  -- Stworzy Writer z wartością () i podanym logiem
+tell x = Writer (x,())-- Stworzy Writer z wartością () i podanym logiem
 
 {-
   'listen' udostępnia log obok wyniku obliczenia
@@ -105,11 +123,11 @@ tell = undefined  -- Stworzy Writer z wartością () i podanym logiem
   A  │      │  (A,W)  
   ━━━▷listen│━━━━━>
      │      │       
-     └──────┘━━━━━▷
+  -->└──────┘━━━━━▷
                W
 -}
 listen :: Writer w a -> Writer w (a, w)
-listen = undefined  -- Udostępni log w wartości wyniku, zachowując go również w logu
+listen (Writer (w,x)) = Writer (w, (x,w)) -- Udostępni log w wartości wyniku, zachowując go również w logu
 
 
 
@@ -122,7 +140,7 @@ listen = undefined  -- Udostępni log w wartości wyniku, zachowując go równie
 -}
 data Account = Account 
   { accountId :: String  -- Identyfikator konta
-  , balance :: Int       -- Aktualny stan
+  , balance :: Int       -- Aktualne saldo 
   } deriving (Show)
 
 {-
@@ -145,7 +163,18 @@ data Account = Account
                 logi
 -}
 deposit :: Account -> Int -> Writer [String] Account
-deposit = undefined  -- Doda kwotę do salda konta z odpowiednim logowaniem
+deposit account@(Account id balance)  value = do -- Doda kwotę do salda konta z odpowiednim logowaniem
+  tell $ ["Proba uzupelnienia salda " ++ show value ++ " do konta " ++ show account]
+  if value > 0 then do 
+    tell ["Wartosc prawidlowa, przelew dokonany"]
+    pure $ Account id (balance + value) -- saldo = saldo + value 
+  else do 
+    tell ["Error: Wartosc ujemna"] 
+    pure account
+  
+exampleAccount :: Account 
+exampleAccount = Account "moje konto" 11
+  
 
 {-
   withdraw: Pobiera pieniądze z konta z logowaniem
@@ -168,7 +197,17 @@ deposit = undefined  -- Doda kwotę do salda konta z odpowiednim logowaniem
                  logi
 -}
 withdraw :: Account -> Int -> Writer [String] Account
-withdraw = undefined  -- Odejmie kwotę z salda konta z odpowiednim logowaniem
+withdraw account@(Account id balance) value = do
+  tell $ ["Proba wyciagniecia pieniedzy z konta " ++ show account] 
+  if balance >= value 
+    then do 
+     tell $ ["Odjete z konta"]
+     pure (Account id (balance - value))
+    else do 
+      tell $ ["Error: za male saldo na koncie " ++ show account]
+      pure account 
+
+ -- Odejmie kwotę z salda konta z odpowiednim logowaniem
 
 {-
   transfer: Przenosi pieniądze między kontami z logowaniem
