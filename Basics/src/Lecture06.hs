@@ -196,6 +196,7 @@ type BankRegister = Writer [LogEntry]
 log :: LogType -> String -> BankRegister () 
 log typ lg = tell  [LogEntry typ lg]
 
+
 deposit :: Account -> Int -> Writer [String] Account
 deposit account@(Account id balance) value = do -- Add amount to account balance with appropriate logging
   tell ["Attempting to deposit " ++ show value ++ " to account " ++ show account]
