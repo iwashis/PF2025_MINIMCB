@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Lecture06 where 
 
 
@@ -6,7 +7,9 @@ module Lecture06 where
  -- T(A) = W x A
  -- data, newtype, type
 data Writer w a =  Writer {runWriter :: (w,a)} 
-  deriving Show
+
+instance (Show a, Show w) => Show (Writer w a) where 
+  show (Writer (w,a)) = "Value:\n" ++ show a ++ "\nLogs:\n" ++ show w
 
 exampleWriter :: Writer Int String 
 exampleWriter = Writer (1,"aaa")
@@ -162,16 +165,46 @@ data Account = Account
      └────────┘━━━━▷
                 logi
 -}
-deposit :: Account -> Int -> Writer [String] Account
-deposit account@(Account id balance)  value = do -- Doda kwotę do salda konta z odpowiednim logowaniem
-  tell $ ["Proba uzupelnienia salda " ++ show value ++ " do konta " ++ show account]
-  if value > 0 then do 
-    tell ["Wartosc prawidlowa, przelew dokonany"]
-    pure $ Account id (balance + value) -- saldo = saldo + value 
-  else do 
-    tell ["Error: Wartosc ujemna"] 
-    pure account
+
+data LogType = Info | Warning | Error
+
+data LogEntry = LogEntry LogType String
+
+
+instance Show LogEntry where
+  show (LogEntry logType message) = coloredLogType logType ++ ": " ++ message
+    where
+      coloredLogType Info = "\ESC[32mINFO\ESC[0m"    -- Green
+      coloredLogType Warning = "\ESC[33mWARNING\ESC[0m"  -- Yellow
+      coloredLogType Error = "\ESC[31mERROR\ESC[0m"   -- Red
+
+
+-- newtype Logs = Logs [LogEntry]
+newtype Logs = Logs [String]
+
+instance Show Logs where
+  show (Logs []) = ""
+  show (Logs (lg:logs)) = lg ++ "\n" ++ show (Logs logs)
+
+instance Semigroup Logs where 
+  (Logs l1) <> (Logs l2) = Logs (l1 <> l2) 
+instance Monoid Logs where 
+  mempty = Logs mempty
   
+type BankRegister = Writer [LogEntry] 
+
+log :: LogType -> String -> BankRegister () 
+log typ lg = tell  [LogEntry typ lg]
+
+deposit :: Account -> Int -> Writer [String] Account
+deposit account@(Account id balance) value = do -- Add amount to account balance with appropriate logging
+  tell ["Attempting to deposit " ++ show value ++ " to account " ++ show account]
+  if value > 0 then do 
+    tell ["Valid amount, deposit completed"]
+    pure $ Account id (balance + value) -- balance = balance + value 
+  else do 
+    tell ["Error: Negative amount"] 
+    pure account
 exampleAccount :: Account 
 exampleAccount = Account "moje konto" 11
   
@@ -196,16 +229,30 @@ exampleAccount = Account "moje konto" 11
      └─────────┘━━━━▷
                  logi
 -}
+--
+-- withdraw :: Account -> Int -> Writer [String] Account
+-- withdraw account@(Account id balance) value = do
+--   tell ["Attempting to withdraw money from account " ++ show account] 
+--   if balance >= value 
+--     then do 
+--      tell ["Amount deducted from account"]
+--      pure (Account id (balance - value))
+--     else do 
+--       tell ["Error: insufficient balance in account " ++ show account]
+--       pure account
+
+
+-- przepisane withdraw uzywajac RecordWildCards
 withdraw :: Account -> Int -> Writer [String] Account
-withdraw account@(Account id balance) value = do
-  tell $ ["Proba wyciagniecia pieniedzy z konta " ++ show account] 
+withdraw account@(Account {..}) value = do
+  tell ["Attempting to withdraw money from account " ++ show account] 
   if balance >= value 
     then do 
-     tell $ ["Odjete z konta"]
-     pure (Account id (balance - value))
+      tell ["Amount deducted from account"]
+      pure (account { balance = balance - value })
     else do 
-      tell $ ["Error: za male saldo na koncie " ++ show account]
-      pure account 
+      tell ["Error: insufficient balance in account " ++ show account]
+      pure account
 
  -- Odejmie kwotę z salda konta z odpowiednim logowaniem
 
