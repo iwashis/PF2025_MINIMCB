@@ -141,9 +141,13 @@ listen (Writer (w,x)) = Writer (w, (x,w)) -- Udostępni log w wartości wyniku, 
   - accountId: Unikalny identyfikator konta
   - balance: Aktualny stan konta
 -}
+
+type AccountID = String 
+
+type Balance = Int
 data Account = Account 
-  { accountId :: String  -- Identyfikator konta
-  , balance :: Int       -- Aktualne saldo 
+  { accountId :: AccountID  -- Identyfikator konta
+  , balance :: Balance -- Aktualne saldo 
   } deriving (Show)
 
 {-
@@ -170,7 +174,6 @@ data LogType = Info | Warning | Error
 
 data LogEntry = LogEntry LogType String
 
-
 instance Show LogEntry where
   show (LogEntry logType message) = coloredLogType logType ++ ": " ++ message
     where
@@ -179,35 +182,38 @@ instance Show LogEntry where
       coloredLogType Error = "\ESC[31mERROR\ESC[0m"   -- Red
 
 
--- newtype Logs = Logs [LogEntry]
-newtype Logs = Logs [String]
+newtype Logs = Logs [LogEntry]
+exampleLogs = Logs [LogEntry Info "aaa", LogEntry Error "no nie"]
+-- newtype Logs = Logs [String]
 
 instance Show Logs where
   show (Logs []) = ""
-  show (Logs (lg:logs)) = lg ++ "\n" ++ show (Logs logs)
+  show (Logs (lg:logs)) = show lg ++ "\n" ++ show (Logs logs)
 
 instance Semigroup Logs where 
   (Logs l1) <> (Logs l2) = Logs (l1 <> l2) 
 instance Monoid Logs where 
   mempty = Logs mempty
   
-type BankRegister = Writer [LogEntry] 
+type BankRegister = Writer Logs 
 
-log :: LogType -> String -> BankRegister () 
-log typ lg = tell  [LogEntry typ lg]
+logMe :: LogType -> String -> BankRegister () 
+logMe typ lg = tell $ Logs [LogEntry typ lg]
 
 
-deposit :: Account -> Int -> Writer [String] Account
+deposit :: Account -> Int -> BankRegister Account
 deposit account@(Account id balance) value = do -- Add amount to account balance with appropriate logging
-  tell ["Attempting to deposit " ++ show value ++ " to account " ++ show account]
+  logMe Info $ "Attempting to deposit " ++ show value ++ " to account " ++ show account
   if value > 0 then do 
-    tell ["Valid amount, deposit completed"]
+    logMe Info "Valid amount, deposit completed"
     pure $ Account id (balance + value) -- balance = balance + value 
   else do 
-    tell ["Error: Negative amount"] 
+    logMe Error "Negative amount"
     pure account
+
+
 exampleAccount :: Account 
-exampleAccount = Account "moje konto" 11
+exampleAccount = Account "Magic Account" 11
   
 
 {-
@@ -244,18 +250,49 @@ exampleAccount = Account "moje konto" 11
 
 
 -- przepisane withdraw uzywajac RecordWildCards
-withdraw :: Account -> Int -> Writer [String] Account
+withdraw :: Account -> Int ->BankRegister Account
 withdraw account@(Account {..}) value = do
-  tell ["Attempting to withdraw money from account " ++ show account] 
+  logMe Info $ "Attempting to withdraw money from account " ++ show account
   if balance >= value 
     then do 
-      tell ["Amount deducted from account"]
+      logMe Info "Amount deducted from account"
       pure (account { balance = balance - value })
     else do 
-      tell ["Error: insufficient balance in account " ++ show account]
+      logMe Error $ "Insufficient balance in account " ++ show account
       pure account
-
  -- Odejmie kwotę z salda konta z odpowiednim logowaniem
+
+
+-- | TODO: Zaimplementować funkcję, która pobiera saldo konta i loguje operację.
+-- | Funkcja powinna używać monady BankRegister do śledzenia operacji.
+getBalance :: Account -> BankRegister Int 
+getBalance account@(Account {..}) = (logMe Info $ "Reading balance from account " ++ show account) >>= \x -> return balance 
+
+fullWithdraw :: Account -> Int ->BankRegister Account
+fullWithdraw account@(Account {..}) value = do 
+  logMe Info $ "Attempting to withdraw money from account " ++ show account
+  b <- getBalance account
+  if b >= value 
+    then do 
+      let oneMoreBalance = b - value
+      logMe Info "Amount deducted from account"
+      pure (let newBalance = b - value in account { balance = newBalance })
+    else do 
+      logMe Error $ "Insufficient balance in account " ++ show account
+      pure account
+ 
+-- | TODO: Zaimplementować funkcję, która pobiera identyfikator konta i loguje tę operację.
+-- | Funkcja powinna zwracać identyfikator konta w kontekście BankRegister.
+getAccountId :: Account -> BankRegister String
+getAccountId = undefined
+
+-- | TODO: Zaimplementować funkcję audytu operacji wypłaty, która sprawdza 
+-- | czy wypłata jest możliwa i loguje wynik tej weryfikacji.
+-- | Funkcja powinna używać operacji `listen` aby przechwycić logi podczas weryfikacji.
+auditWithdraw :: Account -> Int -> BankRegister Bool
+auditWithdraw = undefined
+
+
 
 {-
   transfer: Przenosi pieniądze między kontami z logowaniem

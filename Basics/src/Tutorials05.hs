@@ -1,4 +1,4 @@
-module Tutorials05 () where
+module Tutorials05 where
 --
 -- 1. **Podstawy Monady Maybe**  
 --
@@ -9,16 +9,40 @@ module Tutorials05 () where
 --
 
 
+safeDivide :: Int -> Int -> Maybe Int 
+safeDivide _ 0 = Nothing
+safeDivide m n = Just (m `div` n)
 
-
-
+chainedDivision [] = Nothing
+chainedDivision [x] = Just x 
+-- chainedDivision (x:y:ys) = safeDivide x y >>= \z -> chainedDivision (z:ys)   
+chainedDivision (x:y:ys) = do 
+  z <- safeDivide x y 
+  chainedDivision (z:ys)
+  
 -- 2. **List Monada i eksploracja ścieżek**  
 --
 --    Napisz funkcję `knights :: (Int, Int) -> [(Int, Int)]`, która dla danej pozycji skoczka na szachownicy 
---    zwraca listę wszystkich możliwych ruchów skoczka. Następnie zaimplementuj funkcję `knightPaths :: Int -> (Int, Int) -> (Int, Int) -> [[(Int, Int)]]`, 
+--    zwraca listę wszystkich możliwych ruchów skoczka. Następnie zaimplementuj funkcję 
+--    `knightPaths :: Int -> (Int, Int) -> (Int, Int) -> [[(Int, Int)]]`, 
 --    która znajduje wszystkie możliwe ścieżki o długości `n` ruchów z jednej pozycji do drugiej. Wykorzystaj monadę list oraz 
 --    operator `>>=` do eksploracji wszystkich możliwych ścieżek.
+--
+--    Helper:
+--     [(x+2, y+1), (x+2, y-1), (x-2, y+1), (x-2, y-1), (x+1, y+2), (x+1, y-2), (x-1, y+2), (x-1, y-2)]
 
+knights (x,y) = filter onBoard jumps
+-- [(a,b) | (a,b) <- jumps, a > 0 , a <= 8, b > 0, b <= 8 ] 
+  where 
+    jumps = [(x+2, y+1), (x+2, y-1), (x-2, y+1), (x-2, y-1), (x+1, y+2), (x+1, y-2), (x-1, y+2), (x-1, y-2)]
+    onBoard (a,b) = (a>0) && (b > 0) && (a<= 8) && (b<=8)
+
+knightPaths :: Int -> (Int, Int) -> (Int, Int) -> [[(Int, Int)]]
+knightPaths 0 (x,y) (a,b) = if (x,y) == (a,b) then [[(x,y)]] else [] 
+knightPaths n (x,y) (a,b) = do 
+  (x',y') <- knights (x,y)
+  path <- knightPaths (n-1) (x',y') (a,b)
+  return $ (x,y) : path
 
 
 
