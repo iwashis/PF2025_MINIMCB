@@ -1,103 +1,196 @@
-# Zadania domowe z Haskella, część 3: Monada State i Symulacja Gry Planszowej z IO
+# Zadania domowe z Haskella, część 3: Monada State i Symulacja Gry "Poszukiwacze Skarbów"
 
 ## Cel zadania
-
-Zaimplementuj system symulacji prostej gry planszowej z wykorzystaniem monady State oraz IO. Zamiast korzystać z generatora liczb losowych, poproś użytkownika o podanie wyniku rzutu kośćmi.
+Zaimplementuj system symulacji interaktywnej gry przygodowej "Poszukiwacze Skarbów" z wykorzystaniem monady State oraz IO. Zamiast korzystać z generatora liczb losowych, poproś użytkownika o podanie wyniku rzutu kośćmi oraz decyzji w punktach wyboru.
 
 ## Opis gry
-
-Stwórz symulację gry planszowej z następującą strukturą:
-- Plansza ma określoną długość (liczbę pól)
-- Gracz zaczyna na pozycji 0 i jego celem jest dotarcie do końca planszy
-- W każdej turze gracz podaje wynik rzutu kośćmi (suma oczek) i przesuwa się o podaną liczbę pól
-- Na planszy znajdują się przeszkody na określonych polach - jeśli gracz trafi na przeszkodę, nie przesuwa się w tej turze
+"Poszukiwacze Skarbów" to gra planszowa, w której:
+- Plansza to mapa z kilkoma ścieżkami prowadzącymi do skarbu
+- Gracz rozpoczyna przygodę na pozycji startowej i musi dotrzeć do skarbu
+- Na planszy znajdują się:
+  - Punkty Decyzji - miejsca, gdzie gracz może wybrać jedną z kilku dostępnych ścieżek
+  - Przeszkody - które mogą cofnąć gracza lub opóźnić jego podróż
+  - Skarby Pośrednie - dające graczowi dodatkowe punkty
+  - Pułapki - które mogą odebrać graczowi zgromadzone punkty
+- Gracz ma określoną ilość energii, która zmniejsza się przy każdym ruchu
+- Celem jest dotarcie do skarbu głównego z jak największą liczbą punktów i przed wyczerpaniem energii
 
 ## Wymagania
 
-Zdefiniuj typ `GameBoard` reprezentujący stan planszy oraz typ `BoardGame a = StateT GameBoard IO a` reprezentujący operacje w kontekście gry. Następnie zaimplementuj funkcje:
-- `movePlayer :: Int -> BoardGame Int` - przesuwa gracza na podstawie podanego wyniku rzutu i zwraca liczbę pól, o które się przesunął
-- `playTurn :: BoardGame Bool` - obsługuje jedną turę gry, zwraca True jeśli gracz dotarł do końca planszy
-- `playGame :: BoardGame ()` - prowadzi grę aż do jej zakończenia, wyświetlając stan planszy po każdym ruchu
+Zdefiniuj typ `GameState` reprezentujący stan gry oraz typ `AdventureGame a = StateT GameState IO a` reprezentujący operacje w kontekście gry. Następnie zaimplementuj funkcje:
+
+- `movePlayer :: Int -> AdventureGame Int` - przesuwa gracza na podstawie podanego wyniku rzutu i zwraca liczbę pól, o które się przesunął
+- `makeDecision :: [String] -> AdventureGame String` - obsługuje punkt decyzji, prezentując graczowi opcje i zwracając jego wybór
+- `handleLocation :: AdventureGame Bool` - obsługuje aktualną lokację gracza (przeszkoda, skarb, pułapka), zwraca True jeśli gracz dotarł do celu
+- `playTurn :: AdventureGame Bool` - obsługuje jedną turę gry, zwraca True jeśli gra się zakończyła
+- `playGame :: AdventureGame ()` - prowadzi grę aż do jej zakończenia, wyświetlając stan gry po każdym ruchu
 
 Dodatkowo zaimplementuj funkcje IO do interakcji z użytkownikiem:
 - `getDiceRoll :: IO Int` - prosi użytkownika o podanie wyniku rzutu kośćmi
-- `displayBoard :: GameBoard -> IO ()` - wyświetla aktualny stan planszy
+- `displayGameState :: GameState -> IO ()` - wyświetla aktualny stan gry
+- `getPlayerChoice :: [String] -> IO String` - prosi użytkownika o wybór jednej z opcji
 
 ## Kod początkowy
 
 ```haskell
-module BoardGameSimulation where
+module TreasureHunters where
 
 import Control.Monad.State
 import Control.Monad.IO.Class
 import System.IO
+import Data.List (elemIndex)
 
--- Typ reprezentujący stan gry planszowej
-data GameBoard = GameBoard {
-  playerPosition :: Int,  -- Aktualna pozycja gracza
-  boardSize :: Int,       -- Rozmiar planszy
-  obstacles :: [Int]      -- Pozycje przeszkód
+-- Typ reprezentujący lokację na planszy
+data LocationType = 
+    Empty           -- Zwykłe pole
+  | Decision        -- Punkt decyzji
+  | Obstacle Int    -- Przeszkoda (z wartością opóźnienia)
+  | Treasure Int    -- Skarb (z wartością punktów)
+  | Trap Int        -- Pułapka (z wartością ujemną punktów)
+  | Goal            -- Cel gry - główny skarb
+  deriving (Show, Eq)
+
+-- Typ reprezentujący lokację
+data Location = Location {
+  locationType :: LocationType,
+  description :: String,
+  connections :: [Int]  -- Indeksy połączonych lokacji
 } deriving (Show)
 
--- Definicja typu dla gry planszowej
-type BoardGame a = StateT GameBoard IO a
+-- Typ reprezentujący stan gry
+data GameState = GameState {
+  playerPosition :: Int,     -- Aktualna pozycja gracza
+  playerEnergy :: Int,       -- Pozostała energia gracza
+  playerScore :: Int,        -- Wynik gracza
+  gameMap :: [Location],     -- Mapa gry
+  visitedLocations :: [Int], -- Odwiedzone lokacje
+  turns :: Int               -- Liczba wykonanych tur
+} deriving (Show)
+
+-- Definicja typu dla gry przygodowej
+type AdventureGame a = StateT GameState IO a
 
 -- Funkcja przesuwająca gracza na podstawie wyniku rzutu
 -- Zwraca liczbę pól, o które przesunął się gracz
-movePlayer :: Int -> BoardGame Int
+movePlayer :: Int -> AdventureGame Int
 movePlayer = undefined
 
+-- Funkcja obsługująca punkt decyzji
+-- Prezentuje graczowi opcje i zwraca jego wybór
+makeDecision :: [String] -> AdventureGame String
+makeDecision = undefined
+
+-- Funkcja obsługująca aktualną lokację gracza
+-- Zwraca True jeśli gracz dotarł do celu
+handleLocation :: AdventureGame Bool
+handleLocation = undefined
+
 -- Funkcja obsługująca jedną turę gry
--- Zwraca True jeśli gracz dotarł do końca planszy
-playTurn :: BoardGame Bool
+-- Zwraca True jeśli gra się zakończyła
+playTurn :: AdventureGame Bool
 playTurn = undefined
 
 -- Funkcja prowadząca grę aż do jej zakończenia
-playGame :: BoardGame ()
+playGame :: AdventureGame ()
 playGame = undefined
 
 -- Funkcja pobierająca od użytkownika wynik rzutu kośćmi
 getDiceRoll :: IO Int
 getDiceRoll = undefined
 
--- Funkcja wyświetlająca aktualny stan planszy
-displayBoard :: GameBoard -> IO ()
-displayBoard = undefined
+-- Funkcja wyświetlająca aktualny stan gry
+displayGameState :: GameState -> IO ()
+displayGameState = undefined
+
+-- Funkcja pobierająca wybór gracza spośród dostępnych opcji
+getPlayerChoice :: [String] -> IO String
+getPlayerChoice = undefined
+
+-- Funkcja tworząca przykładową mapę gry
+createGameMap :: [Location]
+createGameMap = [
+  -- Lokacja 0: Start
+  Location Empty "Początek Twojej przygody. Ścieżka prowadzi w głąb lasu." [1],
+  
+  -- Lokacja 1: Rozwidlenie dróg
+  Location Decision "Rozwidlenie dróg. Możesz pójść leśną ścieżką lub górskim szlakiem." [2, 3],
+  
+  -- Lokacje 2-..: Reszta mapy do zdefiniowania
+  -- ...
+  
+  -- Przykłady innych lokacji:
+  -- Location (Obstacle 2) "Zwalony pień drzewa blokuje drogę. Musisz go obejść." [4, 5],
+  -- Location (Treasure 10) "Znalazłeś stary kufer z monetami! (+10 punktów)" [6],
+  -- Location (Trap 5) "Wpadłeś w ruchome piaski! Tracisz część ekwipunku. (-5 punktów)" [7],
+  -- Location Goal "Dotarłeś do ukrytej świątyni! Twój cel znajduje się przed tobą." []
+  
+  -- Dokończ mapę samodzielnie...
+]
 
 -- Funkcja main do uruchomienia gry
 main :: IO ()
 main = do
-  putStrLn "Symulacja gry planszowej"
-  putStrLn "========================"
-  putStrLn "Rozpoczynamy grę na planszy o długości 30 pól z przeszkodami na polach 5, 10, 15, 20 i 25."
-  void $ runStateT playGame (GameBoard 0 30 [5, 10, 15, 20, 25])
+  putStrLn "Poszukiwacze Skarbów"
+  putStrLn "===================="
+  putStrLn "Rozpoczynasz poszukiwanie legendarnego skarbu ukrytego w starożytnej świątyni."
+  putStrLn "Masz ograniczoną energię, więc wybieraj mądrze swoją trasę!"
+  
+  -- Inicjalizacja gry
+  let initialState = GameState {
+    playerPosition = 0,
+    playerEnergy = 20,
+    playerScore = 0,
+    gameMap = createGameMap,
+    visitedLocations = [],
+    turns = 0
+  }
+  
+  void $ runStateT playGame initialState
+  
   putStrLn "Dziękujemy za grę!"
   where void = (>> return ())
 ```
 
 ## Przykładowe uruchomienie
-
 ```
-$ runhaskell BoardGameSimulation.hs
-Symulacja gry planszowej
-========================
-Rozpoczynamy grę na planszy o długości 30 pól z przeszkodami na polach 5, 10, 15, 20 i 25.
-Aktualna pozycja: 0, Cel: 30
-Podaj wynik rzutu kośćmi (2-12): 7
-Przesunąłeś się o 7 pól.
-Aktualna pozycja: 7, Cel: 30
-Podaj wynik rzutu kośćmi (2-12): 8
-Przesunąłeś się o 8 pól.
-Aktualna pozycja: 15, Cel: 30
-Trafiłeś na przeszkodę! Nie przesuwasz się w tej turze.
-...
-Gratulacje! Dotarłeś do końca planszy w 6 turach.
+$ runhaskell TreasureHunters.hs
+Poszukiwacze Skarbów
+====================
+Rozpoczynasz poszukiwanie legendarnego skarbu ukrytego w starożytnej świątyni.
+Masz ograniczoną energię, więc wybieraj mądrze swoją trasę!
+
+Tura: 1 | Energia: 20 | Punkty: 0
+Lokalizacja: Początek Twojej przygody. Ścieżka prowadzi w głąb lasu.
+Podaj wynik rzutu kośćmi (1-6): 4
+
+Przesunąłeś się o 1 pole.
+
+Tura: 2 | Energia: 16 | Punkty: 0
+Lokalizacja: Rozwidlenie dróg. Możesz pójść leśną ścieżką lub górskim szlakiem.
+Wybierz drogę:
+1. Leśna ścieżka
+2. Górski szlak
+Twój wybór: 1
+
+Wybrałeś: Leśna ścieżka
+
+[...]
+
+Tura: 8 | Energia: 3 | Punkty: 25
+Lokalizacja: Dotarłeś do ukrytej świątyni! Twój cel znajduje się przed tobą.
+Gratulacje! Odnalazłeś legendarny skarb!
+Twój wynik końcowy: 75 punktów w 8 turach.
 Dziękujemy za grę!
 ```
 
 ## Wskazówki
-
-1. Użyj monady StateT do połączenia funkcjonalności State (śledzenie stanu gry) i IO (interakcja z użytkownikiem).
-2. Funkcja `lift` z modułu Control.Monad.IO.Class pozwala wykonywać operacje IO wewnątrz monady BoardGame.
-3. Zwróć uwagę na obsługę przeszkód - sprawdzaj, czy nowa pozycja gracza nie znajduje się na liście przeszkód.
-4. Pamiętaj o walidacji danych wejściowych w funkcji `getDiceRoll`.
+1. Wykorzystaj monady StateT do połączenia funkcjonalności State (śledzenie stanu gry) i IO (interakcja z użytkownikiem).
+2. Funkcja `lift` z modułu Control.Monad.IO.Class pozwala wykonywać operacje IO wewnątrz monady AdventureGame.
+3. Pomyśl o różnych efektach dla różnych typów lokacji:
+   - W punktach decyzji (Decision) użyj funkcji `makeDecision` aby umożliwić graczowi wybór drogi
+   - Na przeszkodach (Obstacle) zmniejsz energię gracza lub opóźnij jego ruch
+   - Przy skarbach (Treasure) zwiększ wynik gracza
+   - Przy pułapkach (Trap) zmniejsz wynik gracza
+4. Pamiętaj o walidacji danych wejściowych w funkcjach `getDiceRoll` i `getPlayerChoice`.
+5. Dodaj efekty wizualne poprzez odpowiednie formatowanie tekstu, aby gra była bardziej wciągająca.
+6. Dokończ implementację mapy, dodając różne ścieżki do celu z różnymi wyzwaniami.
