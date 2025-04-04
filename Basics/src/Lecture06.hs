@@ -6,7 +6,7 @@ module Lecture06 where
  -- W - ustalone z gory 
  -- T(A) = W x A
  -- data, newtype, type
-data Writer w a =  Writer {runWriter :: (w,a)} 
+newtype Writer w a =  Writer {runWriter :: (w,a)} 
 
 instance (Show a, Show w) => Show (Writer w a) where 
   show (Writer (w,a)) = "Value:\n" ++ show a ++ "\nLogs:\n" ++ show w
@@ -281,17 +281,23 @@ fullWithdraw account@(Account {..}) value = do
       logMe Error $ "Insufficient balance in account " ++ show account
       pure account
  
--- | TODO: Zaimplementować funkcję, która pobiera identyfikator konta i loguje tę operację.
 -- | Funkcja powinna zwracać identyfikator konta w kontekście BankRegister.
 getAccountId :: Account -> BankRegister String
-getAccountId = undefined
+getAccountId a@(Account {..}) = do
+  logMe Info $ "Reading account id of " ++ show a
+  pure accountId
+
 
 -- | TODO: Zaimplementować funkcję audytu operacji wypłaty, która sprawdza 
 -- | czy wypłata jest możliwa i loguje wynik tej weryfikacji.
 -- | Funkcja powinna używać operacji `listen` aby przechwycić logi podczas weryfikacji.
 auditWithdraw :: Account -> Int -> BankRegister Bool
-auditWithdraw = undefined
-
+auditWithdraw account value = do
+  b <- getBalance account
+  let isPossible = b >= value 
+  if isPossible then logMe Info $  "Withdrawal from " ++ show account ++ " possible."
+  else logMe Error $ "Withdrawal from " ++ show account ++ " not possible."
+  pure isPossible
 
 
 {-
