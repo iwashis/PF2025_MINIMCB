@@ -1,4 +1,4 @@
-# Monada State i Symulacja Gry Planszowej z IO
+# Zadania domowe z Haskella, część 3: Monada State i Symulacja Gry Planszowej z IO
 
 ## Cel zadania
 
