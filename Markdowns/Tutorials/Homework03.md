@@ -145,10 +145,11 @@ main = do
     turns = 0
   }
   
-  void $ runStateT playGame initialState
+  do 
+    runStateT playGame initialState 
+    return ()
   
   putStrLn "Dziękujemy za grę!"
-  where void = (>> return ())
 ```
 
 ## Przykładowe uruchomienie
