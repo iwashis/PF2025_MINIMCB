@@ -126,3 +126,90 @@ calculate :: [Calculator Double] -> Calculator Double
 calculate = undefined               -- Zwraca końcowy wynik
 
 
+
+-- Przykład 4.
+-- Nawigator po labiryncie z użyciem monady State
+-- Wykorzystujemy State do śledzenia pozycji i odwiedzonych komórek podczas eksploracji labiryntu
+
+-- Definicja typów
+type Position = (Int, Int)
+type MazeMap = [[Char]]  -- '#' dla ścian, '.' dla pustych przestrzeni, 'S' dla startu, 'E' dla wyjścia
+
+-- Stan labiryntu zawiera aktualną pozycję, listę odwiedzonych komórek, mapę labiryntu
+-- oraz flagę określającą czy znaleziono ścieżkę
+data MazeState = MazeState {
+  position :: Position,
+  visited :: [Position],
+  maze :: MazeMap,
+  pathFound :: Bool
+} deriving (Show)
+
+type MazeNavigator = State MazeState
+
+-- Kierunki ruchu
+data Direction = North | East | South | West
+  deriving (Show, Eq)
+
+-- Funkcja próbująca wykonać ruch w danym kierunku
+-- Zwraca True jeśli ruch był możliwy, False w przeciwnym wypadku
+-- Aktualizuje stan jeśli ruch był możliwy
+move :: Direction -> MazeNavigator Bool
+move dir = undefined
+
+-- Funkcja pomocnicza: oblicza nową pozycję po wykonaniu ruchu w danym kierunku
+movePosition :: Position -> Direction -> Position
+movePosition (x, y) North = (x, y-1)
+movePosition (x, y) South = (x, y+1)
+movePosition (x, y) East = (x+1, y)
+movePosition (x, y) West = (x-1, y)
+
+-- Sprawdza czy ruch jest dozwolony (w granicach labiryntu i nie na ścianę)
+isValidMove :: MazeMap -> Position -> Bool
+isValidMove maze (x, y) =
+  y >= 0 && y < length maze &&
+  x >= 0 && x < length (maze !! y) &&
+  (maze !! y) !! x /= '#'
+
+-- Sprawdza czy pozycja jest wyjściem z labiryntu
+isExit :: MazeMap -> Position -> Bool
+isExit maze (x, y) = (maze !! y) !! x == 'E'
+
+-- Znajduje ścieżkę przez labirynt używając przeszukiwania w głąb (DFS)
+-- Zwraca True jeśli znaleziono ścieżkę, False w przeciwnym wypadku
+findPath :: MazeNavigator Bool
+findPath = undefined
+
+-- Próbuje wykonać ruch w danym kierunku i kontynuuje szukanie ścieżki
+-- Implementuje mechanizm nawrotów (backtracking)
+tryDirection :: Direction -> MazeNavigator Bool
+tryDirection dir = undefined
+
+-- Inicjalizuje stan labiryntu na podstawie mapy
+initMazeState :: MazeMap -> MazeState
+initMazeState mazeMap = 
+  let startPos = findStart mazeMap
+  in MazeState startPos [startPos] mazeMap False
+
+-- Znajduje pozycję startową w labiryncie
+findStart :: MazeMap -> Position
+findStart maze = head [(x, y) | y <- [0..length maze - 1], 
+                                x <- [0..length (maze !! y) - 1], 
+                                (maze !! y) !! x == 'S']
+
+-- Przykładowy labirynt
+exampleMaze :: MazeMap
+exampleMaze = [
+  "##########",
+  "#S.......#",
+  "#.######.#",
+  "#....#...#",
+  "####.#.###",
+  "#....#...#",
+  "#.######.#",
+  "#........E",
+  "##########"
+  ]
+
+-- Przykładowe użycie:
+-- runState findPath (initMazeState exampleMaze)
+

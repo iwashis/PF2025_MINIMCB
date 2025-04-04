@@ -274,9 +274,9 @@ fullWithdraw account@(Account {..}) value = do
   b <- getBalance account
   if b >= value 
     then do 
-      let oneMoreBalance = b - value
-      logMe Info "Amount deducted from account"
-      pure (let newBalance = b - value in account { balance = newBalance })
+      let message = "Amount deducted from account" -- tylko ze by pokazac syntax let w do oraz poza do 
+      logMe Info message
+      pure (let newBalance = b - value in account { balance = newBalance }) -- tu przyklad let poza do-block
     else do 
       logMe Error $ "Insufficient balance in account " ++ show account
       pure account
