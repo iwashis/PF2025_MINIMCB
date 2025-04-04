@@ -1,430 +1,258 @@
-# Programowanie funkcyjne
-
-## Tomasz Brengos
-
-Wykład 1
+# Wykład 1 - Wprowadzenie do Programowania Funkcyjnego w Haskellu
 
 
+## Interaktywna Praca z GHC
 
+Haskell posiada interaktywny interpreter GHCi (Glasgow Haskell Compiler Interactive), który pozwala na eksperymentowanie z kodem i natychmiastowe uzyskiwanie wyników. Aby uruchomić GHCi, wystarczy wpisać `ghci` w terminalu:
 
-## Kod wykładu 
-Basics/Lecture01.hs
+```
+$ ghci
+GHCi, version 8.10.7: https://www.haskell.org/ghc/  :? for help
+Prelude>
+```
 
+W GHCi możemy wprowadzać wyrażenia i natychmiast otrzymywać ich wartości:
 
----
+```
+Prelude> 2 + 2
+4
+Prelude> "Hello, " ++ "world!"
+"Hello, world!"
+```
 
+## Typy i System Typów
 
-# Zaliczenie przedmiotu
-* Projekt zespołowy, (70 pktów, przydzielane na +-dziesiątych zajęciach)
-* Dwa testy na laboratoriach, (2 x 15 pktów)
+Jedną z najważniejszych cech Haskella jest jego silny statyczny system typów. Każde wyrażenie w Haskellu ma określony typ, który jest sprawdzany podczas kompilacji. Możemy sprawdzić typ wyrażenia za pomocą komendy `:t` lub `:type`:
 
----
+```
+Prelude> :t 42
+42 :: Num p => p
+Prelude> :t "Haskell"
+"Haskell" :: [Char]
+Prelude> :t True
+True :: Bool
+```
 
-# Przykład działającego kodu w Haskellu
+Zwróćmy uwagę, że typ liczby `42` jest polimorficzny - może być dowolnym typem numerycznym (`Int`, `Integer`, `Float`, itd.). Natomiast typ napisu "Haskell" to `[Char]`, czyli lista znaków.
+
+Możemy również definiować własne zmienne i sprawdzać ich typy:
+
+```
+Prelude> let x = 10
+Prelude> let s = "Programowanie funkcyjne"
+Prelude> :t x
+x :: Num p => p
+Prelude> :t s
+s :: [Char]
+```
+
+W Haskellu możemy także jawnie podawać typy zmiennych:
+
+```
+Prelude> let y :: Int; y = 20
+Prelude> :t y
+y :: Int
+```
+
+## Quicksort
+
+Przyjrzyjmy się eleganckiej implementacji algorytmu quicksort w Haskellu. Algorytm ten jest doskonałym przykładem zwięzłości i deklaratywności programowania funkcyjnego. Działa on rekurencyjnie według następującej zasady:
+
+1. Jeśli lista jest pusta, zwracamy pustą listę (przypadek bazowy)
+2. W przeciwnym razie wybieramy pierwszy element jako pivot
+3. Dzielimy pozostałe elementy na dwie grupy: mniejsze od pivota i większe/równe od pivota
+4. Sortujemy rekurencyjnie obie podlisty i łączymy je z pivotem w środku
+
+Cała implementacja zajmuje zaledwie kilka linijek kodu:
 
 ```haskell
-
-quicksort :: Ord a => [a] -> [a]
-quicksort []     = []
-quicksort (x:xs) = quicksort le ++ [x] ++ quicksort gr
+quicksort :: (Ord a) => [a] -> [a]
+quicksort [] = []
+quicksort (x : xs) = quicksort le ++ [x] ++ quicksort gr
   where
     le = filter (< x) xs
-    gr = filter (>=x) xs
+    gr = filter (>= x) xs
+```
+
+Warto zwrócić uwagę na sygnaturę typu `(Ord a) => [a] -> [a]`, która oznacza, że funkcja przyjmuje listę elementów dowolnego typu `a`, pod warunkiem że typ ten należy do klasy typów `Ord` (czyli jego elementy można porównywać), i zwraca listę elementów tego samego typu.
+
+Spróbujmy teraz wykonać kilka przykładów w GHCi:
 
 ```
-Można i tak:
+Prelude> quicksort [3,1,4,1,5,9,2,6]
+[1,1,2,3,4,5,6,9]
+Prelude> quicksort "haskell"
+"aehklls"
+Prelude> quicksort []
+[]
+Prelude> quicksort [7,7,7,7]
+[7,7,7,7]
+Prelude> quicksort [-10,5,0,-3,8]
+[-10,-3,0,5,8]
+```
+
+## Currying Funkcji
+
+W językach funkcyjnych, takich jak Haskell, funkcje są "curried" (od nazwiska matematyka Haskella Curry'ego). Oznacza to, że funkcja przyjmująca wiele argumentów jest traktowana jako seria funkcji jednoargumentowych.
+
+Rozważmy funkcję dodającą dwie liczby:
 
 ```haskell
-quicksort []     = []
-quicksort (x:xs) = quicksort le ++ [x] ++ quicksort gr
-  where
-    le = filter (< x) xs
-    gr = filter (>=x) xs
-
+add :: Int -> (Int -> Int)
+add x = \y -> x + y
 ```
 
+Sygnatura typu `Int -> (Int -> Int)` mówi nam, że `add` przyjmuje liczbę całkowitą i zwraca funkcję, która z kolei przyjmuje liczbę całkowitą i zwraca liczbę całkowitą. Innymi słowy, `add` przyjmuje argument `x` i zwraca funkcję, która przyjmuje argument `y` i zwraca sumę `x + y`.
 
----
+W praktyce możemy używać tej funkcji na dwa sposoby:
 
-# Programowanie w Haskellu, kilka skojarzeń: 
-
-* Teoria kategorii 
-* Deklaratywne
-* Bez efektów ubocznych
-* λ - calculus
-* Leniwe obliczanie
-
----
-
-# Programowanie w Haskellu, kilka skojarzeń: 
-
-## Teoria kategorii
-
-Składamy strzałki:
-```haskell
-(.) :: (a -> b) -> (b -> c) -> (a -> c)
-g . f x = g (f x)
 ```
-
-Monady są wszechobecne:
-```haskell
-class Monad m where
-  (>>=)  :: m a -> (a -> m b) -> m b
-  return :: a -> m a
-```
-
-
-Uwaga notacyjna:
-```haskell
-a -> b -> c = a -> (b->c) ~izomorficzne~ (a,b) -> c
-```
-
----
-
-# Programowanie w Haskellu, kilka skojarzeń: 
-
-## Deklaratywne
-
-*How vs. What* 
-
----
-
-## Paradygmaty programowania: Imperatywne vs. Deklaratywne
-
-Przykład imperatywnego kodu (Python):
-```python
-sum = 0
-for x in list:
-    sum += x
-print(sum)
-```
-
-Przykład deklaratywnego (funkcyjnego) kodu (Haskell):
-```haskell
-sum = foldr (+) 0 list 
-```
-
-Inny przykład innego deklaratywnego kodu (Sql):
-```sql
-SELECT * FROM employees WHERE age >= 20;
-```
-
----
-
-# Programowanie w Haskellu, kilka skojarzeń: 
-
-## Bez efektów ubocznych
-
-*Definicja*
-Funkcja (wyrażenie) ma *efekty uboczne*, jeśli zmienia ona stan
-pewnych zmiennych poza swoim środowiskiem.
-
-*Pytanie*
-Niech f i g będą funkcjami napisanymi w Pythonie.
-Czy spełniona jest następująca równość:
-```python
-f(5)+g(5) = g(5)+f(5) 
-```
-
-*Przykłady*
-* Globalne zmienne
-* I/O 
-* ...
-
----
-
-# Programowanie w Haskellu, kilka skojarzeń:
-
-## λ - calculus
-
-*Definicja* (notacja Haskellowa) 
-e ::= x ∈ Variables |  λx -> e | e e' 
-
-*Definicja* (simply typed λ-calculus)
-Gramatyka typów:
-t ::= t -> t' | t' ∈ BaseTypes 
-Gramatyka wyrażeń λ:
-e ::= x |  λx:t -> e | e e' | c ∈ ConstantsOfBaseTypes 
-
----
-
-# Programowanie w Haskellu, kilka skojarzeń: 
-
-## Leniwe obliczanie
-
-
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢿⣿⣿⠿⠿⠿⠻⠿⢿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⡿⠟⠉⠈⠉⠉⠄⢠⠄⠄⢀⠄⠄⡬⠛⢿⢿⣿⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⡿⡿⠉⠄⠄⠄⠄⠄⠄⠅⠄⠅⠄⠐⠄⠄⠄⠁⠤⠄⠛⢿⢿⣿⣿⣿⣿
-⣿⣿⣿⠍⠄⠄⠄⠄⠄⠄⠄⠄⣀⣀⠄⣀⣠⣀⠄⢈⣑⣢⣤⡄⠔⠫⢻⣿⣿⣿
-⣿⡏⠂⠄⠄⢀⣠⣤⣤⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣮⣔⠂⡙⣿⣿
-⡿⠄⠄⣠⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⣈⣿
-⠇⠄⢠⣿⣿⣿⣿⣿⡿⠿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠿⠿⢿⡿⣿⣿⣿⣿⣿⡧⣼
-⠄⠄⠽⠿⠟⠋⠁⠙⠄⢠⣿⡿⢿⣿⣿⣿⣿⣿⣷⡠⢌⣧⠄⠈⠛⠉⠛⠐⡋⢹
-⠄⠄⠄⠄⠄⠄⠄⢀⣠⣾⡿⠑⠚⠋⠛⠛⠻⢿⣿⣿⣶⣤⡄⢀⣀⣀⡀⠈⠄⢸
-⣄⠄⠄⠄⢰⣾⠟⠋⠛⠛⠂⠄⠄⠄⠄⠒⠂⠛⡿⢟⠻⠃⠄⢼⣿⣿⣷⠤⠁⢸
-⣿⡄⠄⢀⢝⢓⠄⠄⠄⠄⠄⠄⠄⠄⠠⠠⠶⢺⣿⣯⣵⣦⣴⣿⣿⣿⣿⡏⠄⢸
-⣿⣿⡀⠄⠈⠄⠄⠄⠠⢾⣷⣄⢄⣀⡈⡀⠠⣾⣿⣿⣿⣿⣿⣿⣿⡿⠿⢏⣀⣾
-⣿⣿⣷⣄⠄⠄⠄⢀⠈⠈⠙⠑⠗⠙⠙⠛⠄⠈⠹⠻⢿⡻⣿⠿⢿⣝⡑⢫⣾⣿
-⣿⣿⣿⣿⣿⣆⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠑⠐⠚⣨⣤⣾⣿⣿
-
----
-
-## Leniwe obliczanie
-
-
-Nieskończona lista jedynek:
-```haskell
-ones = 1:ones
-```
-
-Nieskończona lista kolejnych liczb naturalnych: 
-```haskell
-nats = [1..]    
-```
-
-*Zagadka*
-```haskell
-f = 0:1:[ x+y | (x,y) <- zip f (tail f)]
-```
-
-
----
-
-# Leniwe obliczanie (zabawa)
-
-*Wyrażenie*
-```
-((2+3)+(1+4))+(5+6)
-```
-
-Innermost evaluation:
-```
-((2+3)+(1+4))+(5+6) -> (5+(1+4))+(5+6) -> 
-        (5+5)+(5+6) -> 10+(5+6)        -> 
-        10+11       -> 21 
-```
-
-Lazy evaluation:
-```
-((2+3)+(1+4))+(5+6) -> ((2+3)+(1+4))+11  ->
-      ((2+3)+5)+11  -> (5+5)+11          -> 
-      10+11         -> 21
-```
-
-
----
-
-# Leniwe obliczanie (zabawa)
-
-Rozważmy funkcję napisaną w C i w Haskellu:
-
-```c
-int f(int x, int y) {
-  if (x>0)
-    return x-1;
-  else 
-    return x+1;
-}
-```
-
-
-```haskell
-f :: Int -> Int -> Int
-f x y = if x > 0 then x-1 else x+1
-```
-
-
----
-# Leniwe obliczanie (zabawa)
-
-Ta sama funkcja: 
-
-```haskell
-f :: Int -> Int -> Int
-f x y = if x > 0 then x-1 else x+1
-```
-
-dodajmy jeszcze:
-
-```haskell
-val = f 1 (product [1..])
-```
-
----
-
-# Leniwe obliczanie (zabawa)
-
-
-```haskell
-length1 :: [a] -> Int
-length1 []     = 0
-length1 (x:xs) = 1 + (length1 xs)
-```
-
-i policzmy
-
-```haskell
-let x = product [1..] in length1 [1,x]
-```
-* Jaki będzie wynik?
-
----
-
-# Leniwe obliczanie (zabawa)
-
-
-Zmieńmy trochę naszą definicję length:
-```haskell
-length2 :: [Int] -> Int
-length2 []     = 0
-length2 (x:xs) = if x > 0 then 1 + (length2 xs) else 1 + (length2 xs)
-```
-
-i policzmy znowu:
-
-```haskell
-let x = product [1..] in length2 [1,x]
-```
-* Jaki teraz będzie wynik?
-
----
-
-# Ewaluacja
-
-*Przykład* 
-```haskell
-length1 [1,x]    -> length1 1:[x] -> 1+(length1 [x]) ->
-1+(length1 x:[]) ->1+(1+length1 []) -> 1+(1+0)-> 1+1 -> 2
-```
-
-*Definicja*
-Wyrażenie jest postaci normalnej (NF, normal form), jeśli nie da się go zredukować.
-
-*Przykłady*
-```haskell
+Prelude> add 2 3
 5
-2:3:[]
-(2,'t')
-\x->x+2
+Prelude> (add 2) 3
+5
 ```
 
+W pierwszym przypadku od razu podajemy oba argumenty. W drugim najpierw tworzymy funkcję częściowo zaaplikowaną `(add 2)`, a następnie aplikujemy ją do argumentu `3`.
 
----
+Warto zauważyć, że w Haskellu wszystkie funkcje są domyślnie curried, więc można również zapisać tę funkcję krócej:
 
-# Ewaluacja
-
-*Definicja* 
-Wyrażenie jest w Weak Head Normal Form (WHNF), jeśli jest \-abstrakcją lub
-wyrażeniem w ktorym najbardziej zewnętrzny konstruktor jest obliczony.
-
-*Przykłady*
 ```haskell
-(1+1,2)
-\x->x+2
-5:whatever
-Just (sum [1..10])
+add :: Int -> Int -> Int
+add x y = x + y
 ```
 
-*Nie-przykłady*
+## Częściowa Aplikacja Funkcji
+
+Currying pozwala na częściową aplikację funkcji, czyli utworzenie nowej funkcji przez dostarczenie tylko części argumentów do funkcji wieloargumentowej.
+
+Na przykład, możemy utworzyć funkcję, która dodaje 6 do swojego argumentu:
+
 ```haskell
-map (\x-> x*x) [1,2]
-(+) 1 2
+t = add 6
 ```
 
-*Pytanie*
-Czy wyrażenie 
+Teraz `t` jest funkcją jednoargumentową:
+
+```
+Prelude> t 4
+10
+Prelude> t 0
+6
+Prelude> map t [1,2,3]
+[7,8,9]
+```
+
+Częściowa aplikacja jest niezwykle przydatna w programowaniu funkcyjnym, ponieważ pozwala na tworzenie nowych funkcji w prosty sposób i ułatwia komponowanie funkcji.
+
+Możemy również częściowo aplikować funkcje wbudowane:
+
+```
+Prelude> let addOne = (+ 1)
+Prelude> addOne 10
+11
+Prelude> let isPositive = (> 0)
+Prelude> isPositive 5
+True
+Prelude> isPositive (-3)
+False
+```
+
+## Nieskończone Listy
+
+Jedną z unikalnych cech Haskella jest leniwa ewaluacja, która pozwala na pracę z nieskończonymi strukturami danych. Dzięki temu możemy definiować nieskończone listy, które są obliczane tylko w takim stopniu, w jakim jest to potrzebne.
+
+Oto przykład nieskończonej listy jedynek:
+
 ```haskell
-f
+ones = 1 : ones
 ```
-jest w WHNF (NF?), jeśli 
+
+Ta definicja może wydawać się rekurencyjna i nieskończona, i dokładnie tak jest! Dzięki leniwej ewaluacji Haskell oblicza tylko tyle elementów, ile jest potrzebne:
+
+```
+Prelude> take 5 ones
+[1,1,1,1,1]
+Prelude> sum (take 100 ones)
+100
+```
+
+Innym przykładem jest nieskończona lista liczb naturalnych:
+
 ```haskell
-f x = x*x
+naturals = 0 : map (+1) naturals
 ```
 
----
+Możemy teraz łatwo pobrać dowolną liczbę liczb naturalnych:
 
-# Ewaluacja
+```
+Prelude> take 10 naturals
+[0,1,2,3,4,5,6,7,8,9]
+```
 
-*Sztuczka*
+Lub znaleźć liczby parzyste:
+
+```
+Prelude> take 10 (filter even naturals)
+[0,2,4,6,8,10,12,14,16,18]
+```
+
+## Ciąg Fibonacciego
+
+Ciąg Fibonacciego jest klasycznym przykładem rekurencji. W Haskellu możemy zdefiniować go w niezwykle elegancki sposób, wykorzystując listy składające (list comprehension) i rekurencję:
+
 ```haskell
-seq x y  -- oblicza x do WHNF (drugi argument może być dowolny, np. ()) i zwraca y. 
+fib = 0 : 1 : [x + y | (x, y) <- zip fib (drop 1 fib)]
 ```
 
-Można sprawdzić działanie 
+Ta definicja jest niemal dokładnym odzwierciedleniem matematycznej definicji ciągu Fibonacciego: każdy element jest sumą dwóch poprzednich. Zauważmy, że definiujemy `fib` w kategoriach samego siebie!
+
+Spróbujmy kilku przykładów:
+
+```
+Prelude> take 10 fib
+[0,1,1,2,3,5,8,13,21,34]
+Prelude> fib !! 6  -- element o indeksie 6 (siódmy element)
+8
+Prelude> fib !! 20
+6765
+```
+
+Możemy również znaleźć elementy ciągu Fibonacciego, które spełniają określone warunki:
+
+```
+Prelude> take 5 (filter (>100) fib)
+[144,233,377,610,987]
+```
+
+## Rekurencja 
+
+Rekurencja jest podstawowym mechanizmem w programowaniu funkcyjnym, zastępującym tradycyjne pętle znane z języków imperatywnych. Przyjrzyjmy się prostej funkcji sumującej elementy listy:
+
 ```haskell
-ghci> let x = 2+3 :: Int
-ghci> :sprint x
-
-ghci> seq x ()
-()
-ghci> :sprint x
-
-ghci> let y = map id [x]
-ghci> :sprint y
-ghci> seq y ()
-()
-ghci> :sprint y
-
-ghci> y 
-ghci> :sprint y
+sum' :: [Int] -> Int
+sum' [] = 0
+sum' (x : xs) = x + sum' xs
 ```
 
----
+Przetestujmy funkcję na kilku przykładach:
 
-# Ewaluacja
-
-*Ćwiczenie*
-Przedstawić ciąg redukcji:
-```haskell
-map negate [1,2,3]
+```
+Prelude> sum' []
+0
+Prelude> sum' [1,2,3,4,5]
+15
+Prelude> sum' [-3,5,10]
+12
 ```
 
-Ściągawka:
-```haskell 
-map ::(a -> b) -> [a] -> [b]
-map f []     = []
-map f (x:xs) = (f x) : map f xs
+W praktyce często używamy funkcji wyższego rzędu, takich jak `map`, `filter` czy `foldr`:
 
-negate :: (Num a) => a -> a
-negate x = -x
 ```
-
-*Ćwiczenie 2*
-Przedstawić ciąg redukcji:
-```haskell
-(take 6 . map (+1)) [1..10]
+Prelude> map (*2) [1,2,3,4,5]  -- podwojenie każdego elementu
+[2,4,6,8,10]
+Prelude> filter even [1,2,3,4,5]  -- wybranie elementów parzystych
+[2,4]
+Prelude> foldr (+) 0 [1,2,3,4,5]  -- sumowanie (równoważne sum')
+15
 ```
-
----
-
-# Ewaluacja
-
-*Twierdzenie*
-Leniwa ewaluacja działa w co najwyżej tylu krokach co ewaluacja gorliwa.
-
-*Problem*
-Pamięć! 
-
-*Ćwiczenie* 
-```haskell 
-sum' []     = 0
-sum' (x:xs) = x + sum' xs
-
-
-sum' [1..100000000]
-
-
-sumUp [1..100000000]
-```
-
-
----
-
-
-# Literatura
-
- * [School of Haskell](https://www.schoolofhaskell.com)
- * [Learn you a Haskell for Greater Good!](http://learnyouahaskell.com)
-
-

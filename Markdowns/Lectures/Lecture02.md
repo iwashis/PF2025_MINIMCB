@@ -1,175 +1,325 @@
-# Programowanie funkcyjne
+# Wykład 2 - Własne Typy Danych w Haskellu
 
-## Tomasz Brengos
+## Typy Wyliczeniowe
 
-Wykład 2
-
-
-## Kod wykładu 
-Basics/Lecture02.hs
-
-
----
-
-# Algebraic Data Types
-
-Niehaskellowe podsumowanie gramatyki ADT:
-```
-τ =  τ in BasicTypes | τ x τ | τ + τ | τ -> τ |  τ :=  τ   
-```
-
----
-
-# Enumeration Types
+Haskell posiada wbudowane typy danych, takie jak `Bool` zdefiniowany jako:
 
 ```haskell
-data Bool  = True | False
-
-data BasicColours = Red
-                    | Green
-                    | Blue
+-- data Bool = True | False
 ```
 
-Ogólnie:
+Na podobnej zasadzie możemy definiować własne typy wyliczeniowe. Poniżej definiujemy typ `BasicColors` reprezentujący podstawowe kolory:
 
 ```haskell
-data EnumType  = EnumType_1 | EnumType_2 | ... | EnumType_n
+data BasicColors = Red | Blue | Green
 ```
 
----
+`BasicColors` ma trzy wartości konstruktora: `Red`, `Blue` i `Green`. Możemy używać go tak:
 
-# Bardziej zaawansowane ADTs:
-
-```haskell 
-data Type = Cons1 Type_11 ... Type_1n1 
-          | Cons2 Type_21 ... Type_2n2
-          |  ...                        
-          | Consm Type_n1 ... Type_mnm
+```
+Prelude> let kolor = Red
+Prelude> :t kolor
+kolor :: BasicColors
 ```
 
-Przykład
+## Algebraiczne Typy Danych
+
+Algebraiczne typy danych (ADT) pozwalają na definiowanie bardziej złożonych struktur. Przyjrzyjmy się typowi `Shape` reprezentującemu różne kształty:
+
 ```haskell
-data Shape = Rectangle (Double,Double) (Double,Double) 
-           | Circle (Double, Double) Double     
-           | Point (Double, Double)
+data Shape
+    = Rectangle (Double, Double) (Double, Double)
+    | Circle (Double, Double) Double
+    | Point (Double, Double)
+```
 
-exampleRect :: Shape
-exampleRect = Rectangle (0,1) (2,4)
+Typ `Shape` ma trzy różne konstruktory:
+- `Rectangle` przyjmuje dwie pary współrzędnych (lewy dolny róg i prawy górny róg)
+- `Circle` przyjmuje parę współrzędnych środka i promień
+- `Point` przyjmuje parę współrzędnych punktu
 
-exampleCirc :: Shape
-exampleCirc = Circle (0,0) 5
+Przykłady użycia:
 
+```
+Prelude> let kwadrat = Rectangle (0,0) (5,5)
+Prelude> let kolo = Circle (3,3) 2
+Prelude> let punkt = Point (1,1)
+```
+
+Teraz możemy zdefiniować funkcje operujące na tych kształtach. Na przykład, funkcja obliczająca pole powierzchni:
+
+```haskell
+volume :: Shape -> Double
+volume (Point (_, _)) = 0
+volume (Circle _ r) = pi * (r ^ 2)
+volume (Rectangle (x, y) (z, t)) = abs (z - x) * abs (t - y)
+```
+
+Przykłady:
+
+```
+Prelude> volume (Point (1,1))
+0
+Prelude> volume (Rectangle (0,0) (3,4))
+12.0
+Prelude> volume (Circle (0,0) 2)
+12.566370614359172
+```
+
+Możemy również definiować funkcje transformujące kształty, jak ta zwiększająca promień koła o 5 (jeśli kształt jest kołem):
+
+```haskell
 changeRadiusIfCircle :: Shape -> Shape
-changeRadiusIfCircle (Circle point r) = Circle point (r+5)
+changeRadiusIfCircle (Circle point r) = Circle point (r + 5)
 changeRadiusIfCircle x = x
 ```
 
----
+Przykłady:
 
-# Można też inaczej...
-
-Dokładne definiowanie typów. Można tak: 
-```haskell 
-data Person1 = Person1 String String String Integer 
-  deriving Show
 ```
-ale też można tak:
-```haskell
-data Person2 = Person2 { name    :: String
-                       , surname :: String
-                       , address :: String 
-                       , age     :: Integer
-                       }
-  deriving Show --deriving (Eq, Show)
-```
-Rozważmy trzy przykłady:
-```haskell
-examplePerson1 = Person1 "Tomasz" "Kowalski" "Warszawa" 20
-examplePerson2 = Person2 "Tomasz" "Kowalski" "Warszawa" 20
-examplePerson3 = Person2 { surname = "Kowalski"
-                         , name    = "Tomasz"
-                         , age     = 20
-                         , address = "Warszawa" 
-                         }
+Prelude> changeRadiusIfCircle (Circle (0,0) 2)
+Circle (0,0) 7
+Prelude> changeRadiusIfCircle (Rectangle (0,0) (3,4))
+Rectangle (0,0) (3,4)
 ```
 
----
+## Rekordy
 
-# Praca z ADT
+Haskell oferuje wygodny sposób definiowania typów danych z nazwanymi polami za pomocą rekordów. Porównajmy dwa sposoby definiowania typu `Person`:
+
+Najpierw standardowa definicja typu:
 
 ```haskell
-data Person2 = Person2 { name    :: String
-                       , surname :: String
-                       , address :: String 
-                       , age     :: Integer
-                       }
-  deriving deriving (Eq, Show)
+data Person = Person String String Int
+    deriving (Show)
+
+p = Person "Tomek" "Kowalski" 25
 ```
-Rozważmy funkcję
-```haskell 
+
+A teraz definicja z użyciem rekordów:
+
+```haskell
+data Person2 = Person2
+    { name :: String
+    , surname :: String
+    , age :: Int
+    }
+    deriving (Show)
+
+p2 = Person2 "Tomek" "Kowalski" 25
+```
+
+Rekordy automatycznie tworzą funkcje dostępu do pól, co ułatwia pracę z danymi:
+
+```
+Prelude> name p2
+"Tomek"
+Prelude> surname p2
+"Kowalski"
+Prelude> age p2
+25
+```
+
+Możemy również używać składni RecordWildCards do wygodniejszej pracy z rekordami:
+
+```haskell
 addMr :: Person2 -> Person2
-addMr p@Person2 { name = name, surname = surname, .. }  =
-   if surname /= "" then Person2 { name = "Mr." ++ name, .. }
-                    else p 
-
+addMr p@Person2{name = name, surname = surname, ..} =
+    if surname /= ""
+        then Person2{name = "Mr." ++ name, ..}
+        else p
 ```
 
-Uwaga! Powyższy kod działa, jeśli na początku pliku
-doda się:
-```haskell
-{-# LANGUAGE RecordWildCards #-}
+Funkcja ta dodaje przedrostek "Mr." do imienia osoby, o ile nazwisko nie jest puste. Użycie `..` pozwala zachować pozostałe pola bez zmian.
+
+Przykłady:
+
+```
+Prelude> addMr (Person2 "Jan" "Kowalski" 30)
+Person2 {name = "Mr.Jan", surname = "Kowalski", age = 30}
+Prelude> addMr (Person2 "Jan" "" 30)
+Person2 {name = "Jan", surname = "", age = 30}
 ```
 
----
+## Rekurencyjne Struktury Danych
 
-# Rekurencyjne ADT
-
-```haskell
-data IntList = EmptyList | Head Int IntList
-
-data IntTree = EmptyTree | Node Int IntTree IntTree
-```
-Jak pracować z rekurencyjnymi typami danych?
-```haskell
-length :: IntList -> Int
-...
-```
-
----
-
-# Typy parametryczne
+W Haskellu możemy definiować rekurencyjne struktury danych. 
+Zobaczmy, jak zdefiniować własną listę liczb całkowitych:
 
 ```haskell
-data List a    = EmptyList | Head a (List a)
-```
-Porównajmy z:
-```haskell
-data [a]       = []        | a:[a]
-```
-Drzewo binarne o wewnętrznych wartościach typu a:
-```haskell
-data BinTree a = EmptyTree | Node a (BinTree a) (BinTree a)
-```
-i jeszcze przykłady:
-```haskell
-data Tuple a      = Tuple a a
+data IntList = EmptyIntList | NonEmptyList Int IntList
+    deriving (Show)
 
-data Triple a b c = Triple a b c
-
-data PairOrMap a b   = Pair a b | Map (a -> b)
+listExample = NonEmptyList 4 (NonEmptyList 5 EmptyIntList)
 ```
 
----
-
-# Ważne przykłady
+Lista składa się z pustej listy (`EmptyIntList`) lub niepustej listy (`NonEmptyList`), 
+która zawiera wartość typu `Int` i resztę listy. 
+Możemy teraz definiować funkcje operujące na tej strukturze, jak obliczanie długości listy:
 
 ```haskell
-data ()          = ()
-data Bool        = True   | False
-data Maybe a     = Just a | Nothing
-data Either a b  = Left a | Right b
-data [a]         = []     |  a:[a]
-data State s a   = State { runState :: s -> (a,s) }
+length2 :: IntList -> Int
+length2 EmptyIntList = 0
+length2 (NonEmptyList _ list) = 1 + length2 list
 ```
 
+Przykłady:
+
+```
+Prelude> length2 EmptyIntList
+0
+Prelude> length2 (NonEmptyList 1 (NonEmptyList 2 EmptyIntList))
+2
+Prelude> length2 listExample
+2
+```
+
+Podobnie możemy zdefiniować drzewo binarne dla liczb całkowitych:
+
+```haskell
+data IntTree = EmptyTree | IntNode Int IntTree IntTree
+```
+
+## Typy Parametryzowane
+
+Definiowanie oddzielnych typów dla list czy drzew różnych typów byłoby nieefektywne. 
+Haskell umożliwia definiowanie typów parametryzowanych, które działają z dowolnym typem. Zdefiniujmy ogólne drzewo binarne:
+
+```haskell
+data Tree a = Empty | Node a (Tree a) (Tree a)
+    deriving (Show)
+
+exampleTree :: Tree [Int]
+exampleTree = Node [1, 2] Empty (Node [4] Empty Empty)
+```
+
+Typ `Tree a` oznacza drzewo przechowujące wartości typu `a`. Możemy tworzyć drzewa przechowujące liczby, napisy, listy, a nawet inne drzewa!
+
+```
+Prelude> Node 5 (Node 3 Empty Empty) (Node 7 Empty Empty) :: Tree Int
+Node 5 (Node 3 Empty Empty) (Node 7 Empty Empty)
+Prelude> Node "root" (Node "left" Empty Empty) (Node "right" Empty Empty) :: Tree String
+Node "root" (Node "left" Empty Empty) (Node "right" Empty Empty)
+```
+
+Podobnie zdefiniujmy ogólną listę dla dowolnego typu:
+
+```haskell
+data List a = EmptyList | Head a (List a)
+```
+
+## Własne Implementacje Klas Typów
+
+Jedną z najbardziej potężnych cech Haskella jest możliwość definiowania własnych implementacji klas typów. Przyjrzyjmy się kilku przykładom:
+
+### Show - Konwersja na String
+
+Możemy zdefiniować własną implementację `Show` dla naszego typu `List`:
+
+```haskell
+instance (Show a) => Show (List a) where
+    show EmptyList = ""
+    show (Head a list) = show a ++ "," ++ show list
+```
+
+Teraz możemy wyświetlać nasze listy w przyjazny (ale też dość pokraczny) sposób:
+
+```
+Prelude> Head 1 (Head 50 EmptyList)
+1,50,
+```
+
+### Eq - Porównywanie Wartości
+
+Możemy również zdefiniować porównywanie dla naszych list:
+
+```haskell
+instance (Eq a) => Eq (List a) where
+    EmptyList == EmptyList = True
+    (Head a _) == EmptyList = False
+    EmptyList == (Head a _) = False
+    (Head a list1) == (Head b list2) = a == b && list1 == list2
+```
+
+Teraz możemy porównywać nasze listy:
+
+```
+Prelude> Head 1 (Head 2 EmptyList) == Head 1 (Head 2 EmptyList)
+True
+Prelude> Head 1 (Head 2 EmptyList) == Head 1 (Head 3 EmptyList)
+False
+```
+
+## Aliasy Typów
+
+Haskell pozwala tworzyć aliasy typów, które poprawiają czytelność kodu:
+
+```haskell
+type NewInt = Int
+
+type Width = Int
+type Height = Int
+
+volume2 :: Width -> Height -> Int
+volume2 h w = h * w
+```
+
+Aliasy typów nie tworzą nowych typów, a jedynie nowe nazwy dla istniejących typów. Są one szczególnie przydatne do poprawy czytelności sygnatur funkcji:
+
+```
+Prelude> volume2 3 4
+12
+```
+
+## Funktory, Półgrupy i Monoidy
+
+Na koniec przyjrzyjmy się bardziej zaawansowanym abstrakcjom, które stanowią fundament programowania funkcyjnego.
+
+### Funktor
+
+Funktor jest abstrakcją, która pozwala na aplikowanie funkcji do wartości opakowanych w kontekst:
+
+```haskell
+instance Functor List where
+    -- fmap :: ( a -> b ) -> ( List a -> List b)
+    fmap _ EmptyList = EmptyList
+    fmap f (Head a list) = Head (f a) (fmap f list)
+```
+
+Teraz możemy używać funkcji `fmap` do mapowania funkcji na wszystkie elementy naszej listy:
+
+```
+Prelude> fmap (+1) (Head 1 (Head 2 EmptyList))
+2,3,
+Prelude> fmap show (Head 1 (Head 2 EmptyList))
+"1","2",
+```
+
+### Półgrupy i Monoidy
+
+Półgrupa to struktura algebraiczna z operacją łączenia, a monoid to półgrupa z elementem neutralnym:
+
+```haskell
+instance Semigroup (List a) where
+    -- (<>) :: List a -> List a -> List a
+    EmptyList <> ys = ys
+    (Head x xs) <> ys = Head x (xs <> ys)
+
+instance Monoid (List a) where
+    -- mempty :: List a
+    mempty = EmptyList
+    -- mappend :: List a -> List a -> List a
+    mappend = (<>)
+```
+
+Teraz możemy łączyć nasze listy za pomocą operatora `<>`:
+
+```
+Prelude> Head 1 (Head 2 EmptyList) <> Head 3 (Head 4 EmptyList)
+1,2,3,4,
+Prelude> mempty <> Head 1 (Head 2 EmptyList)
+1,2,
+Prelude> Head 1 (Head 2 EmptyList) <> mempty
+1,2,
+```
 

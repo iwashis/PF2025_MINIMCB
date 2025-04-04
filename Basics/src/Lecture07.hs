@@ -3,6 +3,27 @@ module Lecture07 where
 
 -- Celem tego wykladu jest kontynuacja wykladu Lecture05, gdzie wprowadzono monade State s
 import Lecture05  -- Importujemy moduł Lecture05, który zawiera definicję monady State
+-- Krotkie przypomnienie
+-- f :: a -> State s b 
+-- a ───┐                 ┌─── b
+--      │                 │
+--      └──→[      f    ]─┘
+--      │                 │
+-- s ───┘                 └─── s
+--
+
+-- f1 :: a -> State s b 
+-- f2 :: b -> State s c 
+-- f3 :: c -> State s d
+-- f1 >=> f2 >=> f3 moze byc interpretowany diagramatycznie jako
+-- a ───┐                 ┌─── b      b ───┐                 ┌─── c      c ───┐                 ┌─── d
+--      │                 │                │                 │                │                 │
+--      └──→[     f1    ]─┘                └──→[     f2    ]─┘                └──→[     f3    ]─┘
+--      │                 │                │                 │                │                 │
+-- s ───┘                 └─── s      s ───┘                 └─── s      s ───┘                 └─── s
+-- 
+
+-- Dodatkowe funkcjonalnosci
 
 -- Funkcja get pozwala na odczytanie aktualnego stanu.
 -- W monadzie stanu, get zwraca aktualny stan bez jego modyfikacji.
@@ -11,7 +32,11 @@ import Lecture05  -- Importujemy moduł Lecture05, który zawiera definicję mon
 -- - Przyjmuje stan typu s
 -- - Zwraca wartość typu s (tę samą co stan)
 -- - Nie modyfikuje stanu
---
+--                        ┌─── s
+--                        │
+--       ──→[    get    ]─┘
+--      │                 │
+-- s ───┘                 └─── s
 -- Przykład użycia:
 -- runState get 5 = (5, 5)
 -- Pierwsza wartość (5) to nowy stan (niezmieniony)
@@ -27,12 +52,18 @@ get = undefined
 -- - Modyfikuje stan na podaną wartość
 -- - Zwraca () (nic istotnego)
 --
+-- s1 :: s  ──┐                 ┌─── ()
+--            │                 │
+--            └──→[    put    ]─┘
+--            │                 │
+-- s2 :: s ───┘                 └─── s1 :: s
+--
 -- Przykład użycia:
 -- runState (put 10) 5 = (10, ())
 -- Pierwsza wartość (10) to nowy stan (został zmieniony z 5 na 10)
 -- Druga wartość (()) to zwrócona wartość (w tym przypadku nic istotnego)
 put :: s -> State s ()
-put newState = undefined 
+put s = undefined 
 
 -- Funkcja modify pozwala na modyfikację aktualnego stanu za pomocą funkcji.
 -- Przykład użycia:
@@ -47,12 +78,9 @@ modify f = undefined
 -- Uzyj tej monady do napisania funkcji quicksort :: (Ord a) => [a] -> Counter [a]
 -- ktora sortuje wejsciowa liste, a w stanie zwraca licznik zawierajacy liczbe wykonanych porownan.
 
-
-
-
-
-
-
+type Counter = State Int
+quicksort :: Ord a => [a] -> Counter [a]
+quicksort = undefined
 
 
 
@@ -92,42 +120,7 @@ collectGold = undefined  -- Zwraca aktualną ilość złota
 
 
 
--- Przyklad 3.
--- Typ kalkulatora to State z liczbą zmiennoprzecinkową jako stanem
--- Przykładowe użycie:
--- runState (do
---     add 10
---     multiply 2
---     subtract 5
---     divide 3
--- ) 0
--- Wynik: (5.0, 5.0)
-
-type Calculator = State Double
-
--- Podstawowe operacje arytmetyczne
-add :: Double -> Calculator Double
-add = undefined 
-
-subtract :: Double -> Calculator Double
-subtract = undefined 
-
-multiply :: Double -> Calculator Double
-multiply = undefined 
-
-divide :: Double -> Calculator Double
-divide = undefined -- Funkcja resetująca stan kalkulatora
-
-clear :: Calculator ()
-clear = undefined
-
--- Funkcja wykonująca sekwencję operacji
-calculate :: [Calculator Double] -> Calculator Double
-calculate = undefined               -- Zwraca końcowy wynik
-
-
-
--- Przykład 4.
+-- Przykład 3.
 -- Nawigator po labiryncie z użyciem monady State
 -- Wykorzystujemy State do śledzenia pozycji i odwiedzonych komórek podczas eksploracji labiryntu
 

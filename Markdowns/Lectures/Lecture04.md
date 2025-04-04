@@ -1,140 +1,273 @@
-# Programowanie funkcyjne
+# Wykład 4 - Funktory Aplikatywne i Monady
 
-## Tomasz Brengos
+## Funktory Aplikatywne
 
-Wykład 4
+Przypomnijmy, że funktor to abstrakcja, która pozwala na aplikowanie funkcji do wartości w kontekście. 
+Funktory aplikatywne rozszerzają tę koncepcję, umożliwiając aplikowanie funkcji, które same są w kontekście.
 
-
-## Kod wykładu 
-Basics/Lecture04.hs
-
-
----
-
-# Funktory Aplikatywne (Applicative)
-
-Zanim przejdziemy do monad, warto zrozumieć functory aplikatywne, które są istotnym ogniwem pośrednim w hierarchii typów.
+Z perspektywy teorii kategorii, możemy zdefiniować funktor aplikatywny jako funktor `F: C -> C` wyposażony w operacje:
 
 ```haskell
-class Functor f => Applicative f where
-  pure  :: a -> f a
-  (<*>) :: f (a -> b) -> f a -> f b
+pure :: a -> F a  -- to samo co eta w monadzie
+(<*>) :: F (a -> b) -> F a -> F b
 ```
 
-Funktor aplikatywny to funktor rozszerzony o dwie operacje:
-- `pure` - umieszcza wartość w kontekście (podobnie jak późniejszy `return`)
-- `(<*>)` - aplikuje funkcję znajdującą się w kontekście do wartości w kontekście
+plus prawa aplikatywne, o których powiemy później.
 
-## Aksjomaty dla Applicative:
+Funktor aplikatywny można rozumieć jako rozszerzenie zwykłego funktora, 
+które pozwala na aplikowanie funkcji wewnątrz kontekstu do wartości w kontekście. Na przykład: `Just (+3) <*> Just 5 = Just 8`
+
+### Przykład: Maybe jako Funktor Aplikatywny
+
+Zdefiniujmy własną wersję typu `Maybe` i zaimplementujmy dla niego instancję `Applicative`:
+
 ```haskell
-pure id <*> v = v                            -- tożsamość
-pure (.) <*> u <*> v <*> w = u <*> (v <*> w) -- kompozycja
-pure f <*> pure x = pure (f x)               -- homomorfizm
-u <*> pure y = pure ($ y) <*> u              -- zamiana
+data Maybe' a = Just' a | Nothing'
+    deriving (Show, Functor)
+
+instance Applicative Maybe' where
+    pure = Just'
+    Nothing' <*> _ = Nothing'
+    _ <*> Nothing' = Nothing'
+    (Just' f) <*> (Just' x) = Just' (f x)
 ```
 
----
+Przykłady użycia `Maybe'` jako funktor aplikatywny:
 
-# Przykłady Applicative
+```
+Prelude> Just' (+3) <*> Just' 5
+Just' 8
+Prelude> Just' (*) <*> Just' 5 <*> Just' 3
+Just' 15
+Prelude> Nothing' <*> Just' 5
+Nothing'
+```
 
-## Maybe jako Applicative:
+### Własna Lista jako Funktor Aplikatywny
+
+Zdefiniujmy teraz własny typ listy i zaimplementujmy dla niego instancję `Applicative`:
+
 ```haskell
-instance Applicative Maybe where
-  pure = Just
-  
-  Nothing <*> _ = Nothing
-  (Just f) <*> something = fmap f something
+data MyList a = Nil | Con a (MyList a)
+    deriving (Show, Functor)
+
+-- concat' łączy dwie listy typu MyList
+concat' :: MyList a -> MyList a -> MyList a
+concat' Nil list2 = list2
+concat' (Con x xs) list2 = Con x (concat' xs list2)
+
+instance Applicative MyList where
+    pure x = Con x Nil
+    Nil <*> _ = Nil
+    _ <*> Nil = Nil
+    (Con f fs) <*> args = fmap f args `concat'` (fs <*> args)
 ```
 
-## Wykorzystanie:
+Przykład użycia `MyList` jako funktor aplikatywny:
+
+```
+Prelude> Con (+1) (Con (*2) Nil) <*> Con 3 (Con 4 Nil)
+Con 4 (Con 5 (Con 6 (Con 8 Nil)))
+```
+
+W tym przykładzie funkcje `(+1)` i `(*2)` zostały zaaplikowane do każdego elementu listy `[3, 4]`, dając w wyniku listę `[3+1, 4+1, 3*2, 4*2]`, czyli `[4, 5, 6, 8]`.
+
+Dla porównania, w standardowych listach moglibyśmy zdefiniować operator `<*>` w następujący sposób:
+
 ```haskell
--- Połączenie dwóch wartości Maybe
-liftA2 :: Applicative f => (a -> b -> c) -> f a -> f b -> f c
-liftA2 f x y = f <$> x <*> y
-
--- Przykład:
-createUser :: Maybe String -> Maybe Int -> Maybe User
-createUser name age = liftA2 User name age
+star :: [a -> b] -> [a] -> [b]
+star fs args = [f x | (f, x) <- zip fs args]
 ```
-## Zadanie na wykład 
 
-Napisać instancję `Applicative` dla listy. 
+Ten operator działa inaczej - aplikuje każdą funkcję tylko do odpowiadającego jej argumentu:
 
----
-
-# Monady!
-
-Przypomnienie definicji z teorii kategorii. Trójkę 
-``` haskell 
-(m, join, return)
 ```
-nazywamy monadą, jeśli m jest funktorem oraz:
+Prelude> star [(+1), (*2)] [3, 4]
+[4, 8]
+```
+
+### Prawa Funktorów i Funktorów Aplikatywnych
+
+Przypomnijmy, jak wyglądają klasy `Functor` i `Applicative`:
+
 ```haskell
-join   :: m (m a)   -> m a
-return ::  a        -> m a
+class Functor' f where
+    fmap' :: (a -> b) -> f a -> f b
+
+class (Functor' f) => Applicative' f where
+    pure' :: a -> f a
+    liftA2' :: (a -> b -> c) -> f a -> f b -> f c
 ```
-spełniają znane aksjomaty dla mnożenia i jedności monady:
+
+Funktory muszą spełniać następujące prawa:
+- Identity: `fmap id == id`
+  - Mapowanie tożsamości nie zmienia struktury
+  - Przykład: `fmap id [1,2,3] = [1,2,3]`
+- Composition: `fmap (g . h) == (fmap g) . (fmap h)`
+  - Kolejność mapowania nie ma znaczenia
+  - Przykład: `fmap ((*2) . (+1)) [1,2,3] = fmap (*2) (fmap (+1) [1,2,3]) = [4,6,8]`
+
+Funktory aplikatywne muszą spełniać następujące prawa:
+- Identity: `pure id <*> v == v`
+  - Aplikowanie funkcji tożsamości nie zmienia wartości
+  - Przykład: `pure id <*> [1,2,3] = [1,2,3]`
+- Homomorphism: `pure f <*> pure x == pure (f x)`
+  - Aplikowanie funkcji do wartości w "czystym" kontekście
+  - Przykład: `pure (+3) <*> pure 5 = pure 8`
+- Interchange: `u <*> pure y == pure ($ y) <*> u`
+  - Kolejność aplikowania funkcji do wartości
+  - Przykład: `[(*2), (+3)] <*> pure 5 = pure ($ 5) <*> [(*2), (+3)] = [10, 8]`
+- Composition: `pure (.) <*> u <*> v <*> w == u <*> (v <*> w)`
+  - Kompozycja funkcji w kontekście aplikatywnym
+
+### Praktyczne Zastosowania Funktorów Aplikatywnych
+
+Funktory aplikatywne są niezwykle przydatne w praktyce. Jednym z typowych zastosowań jest walidacja danych lub obsługa błędów:
+
 ```haskell
-join . (fmap join)   = join . join
-join . (fmap return) = join . return = id
+data User = User String Int
+    deriving (Show)
+
+createUser :: String -> Int -> User
+createUser = User
+
+-- Tworzenie użytkownika z wartościami Maybe - użyteczne gdy dane mogą być niepełne
+maybeCreateUser :: Maybe String -> Maybe Int -> Maybe User
+maybeCreateUser = liftA2 createUser
+
+-- Tworzenie wielu użytkowników z list imion i wieku
+createMultipleUsers :: [String] -> [Int] -> [User]
+createMultipleUsers = liftA2 createUser
 ```
 
----
+Przykłady:
 
-W Haskellu bardziej przydatne jest składanie w kategorii Kleisli
-dla danej monady:
+```
+Prelude> maybeCreateUser (Just "Jan") (Just 30)
+Just (User "Jan" 30)
+Prelude> maybeCreateUser Nothing (Just 30)
+Nothing
+Prelude> createMultipleUsers ["Jan", "Anna"] [30, 25]
+[User "Jan" 30, User "Anna" 25]
+```
+
+## Monady
+
+Monady są kolejnym poziomem abstrakcji, który rozszerza funkcjonalność funktorów aplikatywnych. Z perspektywy teorii kategorii, monada to funktor `T: C -> C` wyposażony w strukturę:
+
+```
+eta : x -> T x   (nazywane return w Haskellu)
+mu : T T x -> T x  (nazywane join w Haskellu)
+```
+
+plus prawa monadyczne.
+
+W Haskellu definiujemy monadę za pomocą klasy typów:
+
 ```haskell
-(>=>) :: (Monad m) => (a -> m b) -> (b -> m c) -> a -> m c
+class (Functor' m, Applicative' m) => Monad' m where
+    return' :: a -> m a  -- to samo co pure z instancji Applicative
+    bind' :: m a -> (a -> m b) -> m b  -- zamiast bind piszemy >>= w notacji infixowej
+    -- join' :: m (m a) -> m a
 ```
-Wyraźmy >=> za pomocą join!
+
+Monada umożliwia sekwencyjne wykonywanie operacji w kontekście. 
+Operator `>>=` (bind) pozwala na "wyciągnięcie" wartości z kontekstu, wykonanie na niej operacji i "zapakowanie" wyniku z powrotem do kontekstu.
+
+### Przykłady Operacji Monadycznych
+
+Zdefiniujmy kilka pomocniczych funkcji do pracy z monadą `Maybe`:
+
 ```haskell
-f >=> g = join. fmap g . f 
+toList :: a -> [a]
+toList = pure
+
+-- Funkcja obliczająca pierwiastek, która może się nie powieść dla liczb ujemnych
+fun :: Float -> Maybe Float
+fun n
+    | n >= 0 = Just $ sqrt n
+    | otherwise = Nothing
+
+-- Przykładowa funkcja kwadratowa zawsze się powiedzie
+g :: Float -> Maybe Float
+g n = Just $ n * n
 ```
-Okazuje się, że częściej W Haskellu używana jest operacji bind:
+
+Teraz zaimplementujmy instancję `Monad` dla naszego typu `Maybe'`:
+
 ```haskell
-(>>=) :: (Monad m) => m a -> (a -> m b) -> m b
+instance Monad Maybe' where
+    -- >>= : Maybe a -> (a -> Maybe b) -> Maybe b
+    Nothing' >>= _ = Nothing'
+    (Just' x) >>= f = f x
 ```
-Definicja instancji Monad zawiera:
+
+Przykłady użycia monady `Maybe'`:
+
+```
+Prelude> Just' 16 >>= fun
+Just' 4.0
+Prelude> Just' (-4) >>= fun
+Nothing'
+Prelude> Nothing' >>= fun
+Nothing'
+Prelude> Just' 3 >>= fun >>= g
+Just' 9.0
+```
+
+### Kompozycja Funkcji Monadycznych
+
+Monady umożliwiają elegancką kompozycję funkcji, które operują w kontekście. Operator `>=>` (Kleisli composition) pozwala na sekwencyjne łączenie takich funkcji:
+
 ```haskell
-(>>=)  :: (Monad m) => m a -> (a -> m b) -> m b
-return :: (Monad m) =>   a -> m a
+-- dla f :: a -> Maybe b , g :: b -> Maybe c
+-- f >=> g :: a -> Maybe c
+(f >=> g) x = case (f x) of
+ Nothing -> Nothing
+ Just y  -> g y
 ```
 
-## Związek między >=> i >>= :
+Zobaczmy praktyczne zastosowanie tego operatora na przykładzie funkcji operujących na listach:
+
 ```haskell
-f >=> g = \x -> ( f x >>= g )
-
-x >>= g = (const x >=> g) ()
-```
-
----
-
-# Zacznijmy od (prawie) najprostrzej monady, czyli Maybe
-
-Definicja instancji monady Maybe:
-```haskell
-instance Monad Maybe where
-  Nothing >>= _ = Nothing
-  Just x  >>= f = f x
-
-  return = Just
-```
-Pobawmy się kodem. Funkcje head i tail w Haskellu są częściowe. 
-Możemy je poprawić:
-```haskell 
+-- Bezpieczna wersja funkcji head, która zwraca Nothing dla pustej listy
 head' :: [a] -> Maybe a
-head' []     = Nothing
-head' (x:xs) = Just x
+head' [] = Nothing
+head' (x : _) = Just x
 
+-- Bezpieczna wersja funkcji tail, która zwraca Nothing dla pustej listy
 tail' :: [a] -> Maybe [a]
-tail' []     = Nothing
-tail' (x:xs) = Just xs
+tail' [] = Nothing
+tail' (_ : xs) = Just xs
+
+-- Funkcja wyciągająca trzeci element listy, używająca operatora >=>
+third = tail' >=> tail' >=> head'
 ```
 
-## Zadanie: 
-Używając head' i tail' napisać funkcję która zwraca 3ci element
-z wejściowej listy:
+Przykłady:
+
+```
+Prelude> third [1,2,3,4]
+Just 3
+Prelude> third [1,2]
+Nothing
+```
+
+Możemy zaimplementować tę samą funkcję używając operatora `>>=`:
+
 ```haskell
-third :: [a] -> Maybe a
+third_bind list = (tail' list >>= tail') >>= head'
 ```
 
+### Składnia do
+
+Haskell oferuje specjalną składnię `do`, która czyni kod monadyczny bardziej czytelnym, przypominającym styl imperatywny:
+
+```haskell
+third_do list = do 
+  ys <- tail' list  -- wyciągnij ogon listy
+  zs <- tail' ys    -- wyciągnij ogon ogona
+  head' zs          -- weź głowę podwójnego ogona
+```
+
+Ta implementacja jest równoważna poprzednim, ale dla bardziej złożonych operacji monadycznych składnia `do` jest znacznie bardziej czytelna.

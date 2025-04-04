@@ -1,255 +1,191 @@
-# Programowanie funkcyjne
+# Wykład 3 - Złożenia (Foldy) w Haskellu
 
-## Tomasz Brengos
+## Podstawowe Złożenia: foldl i foldr
 
-Wykład 3
-
-
-## Kod wykładu 
-Basics/Lecture03.hs
-
-
----
-
-# Typeclasses
-
-W REPL:
-```haskell
-ghci> :t (==)
-
-ghci> :t show
-
-ghci> :t (<)
-
-ghci> :t read
-
-ghci> :t fmap
-```
-
----
-
-# Definiowanie własnych instancji
+Na początek przypomnijmy sobie działanie dwóch podstawowych funkcji złożeń: `foldl` (złożenie lewostronnie) i `foldr` (złożenie prawostronnie).
 
 ```haskell
-
-data List a = Empty | Head a (List a)
-
-instance Show a => Show List a where
-  ...
-
-instance Eq a => Eq (List a) where
-  ...
-
-instance Functor List where
-  ...
-
+-- foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an
+-- foldr (*) seed [a1..an] -> a1*(a2*..(an*seed))..)
+--
+-- foldl :: (b -> a -> b) -> b -> [a] -> b
 ```
 
----
+Funkcja `foldl` składa listę od lewej strony, zaczynając od wartości początkowej 
+(seed) i aplikując funkcję kumulacyjnie do każdego elementu. Z kolei `foldr` składa listę od prawej strony.
 
-# Definiowanie własnych typeclasses
+## Przykłady Zastosowania Złożeń
 
-## Przyklady typeclass predefiniowanych w Haskellu (wersja skrócona):
+### Tworzenie Listy Wszystkich Podlist Początkowych
+
+Zobaczmy praktyczne zastosowanie złożeń na przykładzie funkcji `initl`, która tworzy listę wszystkich początkowych podlist:
 
 ```haskell
-class Functor f where
-  fmap :: (a -> b) -> f a -> f b 
-
-class Show a where
-  show :: a -> String
-
-class Semigroup a where
-  (<>) :: a -> a -> a
-
-class Semigroup a => Monoid a where
-  mempty  :: a
-  mappend :: a -> a -> a
-  mappend = (<>)
+initl :: [a] -> [[a]]
+initl = foldl f seed 
+  where
+    seed = [[]]  -- wartość początkowa to lista zawierająca pustą listę
+    f s c = s ++ [last s ++ [c]]  -- dodajemy nowy element do ostatniej podlisty i dołączamy do wyniku
 ```
 
----
+Funkcja `initl` używa `foldl` do budowania wyniku krok po kroku. 
+Zaczynamy od listy zawierającej pustą listę, a następnie 
+dla każdego nowego elementu tworzymy nową podlistę przez dodanie go do ostatniej utworzonej podlisty.
 
+Przykłady:
+```
+Prelude> initl "abc"
+["","a","ab","abc"]
+Prelude> initl [10,20,30]
+[[],[10],[10,20],[10,20,30]]
+```
 
-# Rozszerzmy nasze definicje instancji dla List
+Możemy zaimplementować tę samą funkcję używając `foldr`:
 
 ```haskell
-instance Semigroup (List a) where
-...
-
-instance Monoid (List a) where
-...
+initr :: [a] -> [[a]]
+initr = foldr f seed 
+  where
+    seed = [[]]
+    f x acc = [] : map (x:) acc
 ```
 
----
+Różnica polega na sposobie konstruowania wyniku - w `foldr` zaczynamy od końca listy i budujemy wynik od prawej strony.
 
+### Suma Elementów Listy
 
-# Funktory
-
-Ćwiczenia:
-```haskell
-data Maybe1 a = Just a | Nothing -- Maybe a := a + {*}
-
-instance Functor Maybe1 where
-  fmap = ...
-```
+Najprostszym przykładem zastosowania złożenia jest obliczanie sumy elementów listy:
 
 ```haskell
-data Either1 a b = Left a | Right b
-
-instance Functor (Either1 a) where
-  fmap = ...
+sumList :: [Int] -> Int
+sumList = foldl (+) 0
 ```
 
----
-
-# Folds (klasycznie)
-
-Niech:
-```haskell
-(*)  :: a -> b -> b
-(#)  :: b -> a -> b
-seed :: b
-ai   :: a
+Przykład:
 ```
-Rozważmy następujące przyporządkowania:
-```haskell
-foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an
-foldr (*) seed [a1..an] -> a1*(a2*..(an*seed))..) 
-```
-Ich definicje są następujące:
-```haskell
-foldl :: (b -> a -> b) -> b -> [a] -> b
-foldl f seed []     =  seed
-foldl f seed (x:xs) =  foldl f (f seed x) xs
-```
-oraz:
-```haskell 
-foldr :: (a -> b -> b) -> b -> [a] -> b
-foldr f seed []     = seed
-foldr f seed (x:xs) = f x (foldr seed xs)
-```
-Obie funkcje działają leniwie! Jedną z nich można przepisać do 
-wersji gorliwej:
-```haskell
-foldl' f seed []     = seed
-foldl' f seed (x:xs) = let z = f seed x in seq z (foldl' f z xs)
+Prelude> sumList [1,2,3,4,5]
+15
 ```
 
----
+W tym przypadku `foldl` działa tak: `((((0+1)+2)+3)+4)+5 = 15`
 
-# Folds (klasycznie)
+### Odwrócenie Listy
 
-## Ćwiczenia
-
-1) Używając funkcji foldr zdefiniowac funkcję 
-```haskell
-init :: [a] -> [[a]] 
-```
-zwracającą wszystkie prefiksy argumentu, np. 
-```haskell
-init "tomek" = [[],"t","to","tom","tome","tomek"]
-```
-2) Używając foldl zdefiniować 
-```haskell 
-approxE :: Int -> Double
-```
-która dla argumentu n zwraca przybliżoną wartość liczby Eulera 
-(używajac klasycznego wzoru na sumę odwrotności silnii kolejnych liczb nautralnych)
-
-## Ćwiczenia ciekawsze
-
-3) Zapisać foldl używajac funkcji foldr. 
-
----
-
-# Ćwiczenie 3 (definicja foldl za pomocą foldr) 
-
-## Komentarz pomocniczy:
+Kolejnym ciekawym przykładem jest odwrócenie listy:
 
 ```haskell
-foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an
-foldr (*) seed [a1..an] -> a1*(a2*..(an*seed))..) 
+reverseList :: [a] -> [a]
+reverseList = foldl (\acc x -> x : acc) []
 ```
 
-Rozważmy:
+Przykład:
+```
+Prelude> reverseList [1,2,3]
+[3,2,1]
+```
+
+Krok po kroku:
+1. `acc = [], x = 1 => x : acc = [1]`
+2. `acc = [1], x = 2 => x : acc = [2,1]`
+3. `acc = [2,1], x = 3 => x : acc = [3,2,1]`
+
+### Zliczanie Wystąpień Elementu
+
+Złożenia są również przydatne do analizy danych, np. zliczania wystąpień elementu:
 
 ```haskell
-f1 = \v -> v # a1
-f2 = \v -> v # a2
-...
-fn = \v -> v # an
+countOccurrences :: Eq a => a -> [a] -> Int
+countOccurrences y = foldl (\acc x -> if x == y then acc + 1 else acc) 0
 ```
 
-Co się stanie jak policzymy:
-```haskell
-(foldr (flip (.)) id [f1..fn]) seed   -- flip :: (a -> b -> c) -> (b -> a -> c) 
+Przykład:
+```
+Prelude> countOccurrences 'a' "abracadabra"
+5
 ```
 
-```haskell 
-(foldr (flip (.)) id [f1..fn]) seed ->   (...( id . fn )..). f2) . f1 seed 
-== (fn . fn-1 . .. . f1)  seed -> (.. (seed # a1) # a2 .. )# an  
-```
-Dokończyć zadanie!
+## Złożenia na Własnych Typach Danych
 
----
-
-# Foldables bardziej ogólnie
+Haskell pozwala rozszerzyć koncepcję złożeń na własne typy danych 
+poprzez implementację interfejsu `Foldable`. 
+Zdefiniujmy drzewo binarne i zaimplementujmy dla niego `Foldable`:
 
 ```haskell
 data Tree a = EmptyTree | Leaf a | Node a (Tree a) (Tree a)
 ```
-Przykład:
+
+Oto kilka przykładowych drzew:
+
 ```haskell
 tree :: Tree String
-tree = Node "a" (Node "b" Empty (Leaf "c")) (Node "d" Empty Empty)
+tree = Node "a" (Node "b" EmptyTree (Leaf "c")) (Node "d" EmptyTree EmptyTree)
+
+tree2 :: Tree Int
+tree2 = Node 1 (Node 5 EmptyTree (Leaf 7)) (Node 3 EmptyTree EmptyTree)
 ```
-Żeby łatwiej zrozumieć tree spójrzmy na: 
-```
-          a
-        /   \
-       b     d
-        \
-         c
-```
-Spróbujmy napisać wersje foldr dla Tree a zamiast dla [a].
+
+Implementacja interfejsu `Foldable` dla drzewa:
 
 ```haskell
-foldr :: (a -> b -> b) -> b -> Tree a -> b
-foldr f seed EmptyTree           = seed
-foldr f seed (Leaf x)            = f x seed
-foldr f seed (Node x left right) = foldr f (f x (foldr f seed right)) left
+instance Foldable Tree where
+    -- foldMap :: Monoid m => (a -> m) -> Tree a -> m
+    -- Mapuje każdy element drzewa na monoid i łączy wyniki
+    foldMap _ EmptyTree = M.mempty  -- puste drzewo to element neutralny monoidu
+    foldMap f (Leaf x) = f x  -- liść to po prostu wartość przekształcona przez f
+    foldMap f (Node x left right) = foldMap f left `M.mappend` f x `M.mappend` foldMap f right
+    
+    -- foldr :: (a -> b -> b) -> b -> Tree a -> b
+    -- Składa drzewo "od prawej"
+    foldr _ seed EmptyTree = seed  -- puste drzewo zwraca wartość początkową
+    foldr f seed (Leaf x) = f x seed  -- liść aplikuje funkcję f do swojej wartości i seed
+    foldr f seed (Node x left right) = foldr f (f x (foldr f seed right)) left
+    -- Kolejność obliczania: najpierw prawe poddrzewo, potem węzeł, potem lewe poddrzewo
 ```
 
-Możemy też napisać coś nowego!
+Implementując `Foldable` dla naszego drzewa, zyskujemy dostęp do wszystkich funkcji, 
+które działają na typach implementujących ten interfejs, takich jak `fold`, `foldMap`, `foldr`, `foldl` itd.
+
+### Przykłady Użycia Złożeń na Drzewach
+
+Aby zademonstrować działanie `Foldable` na drzewach, zdefiniujmy typ pomocniczy `Any` do sprawdzania, czy drzewo zawiera określoną wartość:
+
 ```haskell
-foldMap :: (Monoid m) => (a -> m) -> Tree a -> m
+newtype Any = Any { getAny :: Bool }
+
+instance Semigroup Any where 
+ (<>) (Any x) (Any y) = Any (x || y)
+ 
+instance Monoid Any where
+  mempty = Any False 
 ```
-Okazuje się, że używając foldr możemy wyrazić foldMap i odwrotnie!
-Oznacza to, że wystarczy zdefiniować jedno z nich. 
 
-## Ćwiczenie
-
-Zdefiniować foldMap za pomocą foldr i odwrotnie (dla list).
-
----
-
-# Foldable typeclass
+Teraz możemy napisać funkcję sprawdzającą, czy drzewo zawiera określoną wartość:
 
 ```haskell
-class Foldable t where
-  foldr   :: (a -> b -> b) -> b -> t a -> b
-  foldMap :: (Monoid m) => (a -> m) -> t a -> m
--- i inne:  
-  fold    :: (Monoid m) => t m -> m
-  foldl   :: (b -> a -> b) -> b -> t a -> b
-  ...
-```
-Nie trzeba definiować obu: foldr i foldMap. Wystarczy jedno z nich, gdyż
-minimalna definicja instancji Foldable zawierać ma definicję
-```haskell
-foldr
--- lub
-foldMap
+treeContains :: Eq a => a -> Tree a -> Bool
+treeContains x = getAny . foldMap (\y -> Any (y == x))
 ```
 
+Przykłady:
+```
+Prelude> treeContains 7 tree2
+True
+Prelude> treeContains 10 tree2
+False
+```
+
+Możemy również zebrać wszystkie wartości z drzewa do listy w porządku inorder (lewe poddrzewo, węzeł, prawe poddrzewo):
+
+```haskell
+treeToList :: Tree a -> [a]
+treeToList = foldMap (\x -> [x])
+```
+
+Przykłady:
+```
+Prelude> treeToList tree
+["b","c","a","d"]
+Prelude> treeToList tree2
+[5,7,1,3]
+```
 
