@@ -1,4 +1,4 @@
-# Wykład 3 - Złożenia (Foldy) w Haskellu
+# Foldy w Haskellu
 
 ## Podstawowe Złożenia: foldl i foldr
 

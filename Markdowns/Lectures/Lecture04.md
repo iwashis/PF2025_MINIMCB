@@ -1,4 +1,4 @@
-# Wykład 4 - Funktory Aplikatywne i Monady
+# Funktory Aplikatywne i Monady
 
 ## Funktory Aplikatywne
 

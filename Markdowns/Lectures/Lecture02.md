@@ -1,4 +1,4 @@
-# Wykład 2 - Własne Typy Danych w Haskellu
+# Algebraiczne Typy Danych
 
 ## Typy Wyliczeniowe
 

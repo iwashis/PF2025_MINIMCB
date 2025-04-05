@@ -1,4 +1,4 @@
-# Wykład 7 - Monada State i Jej Zastosowania
+# Monada State i Jej Zastosowania
 
 ## Wprowadzenie
 

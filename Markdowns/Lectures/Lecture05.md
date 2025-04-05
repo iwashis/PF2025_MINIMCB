@@ -1,4 +1,4 @@
-# Wykład 5 - Monada Writer i Implementacja Systemu Bankowego
+# Monada Writer i Implementacja Systemu Bankowego
 
 ## Monada Writer
 

@@ -1,4 +1,4 @@
-# Wykład 1 - Wprowadzenie do Programowania Funkcyjnego w Haskellu
+# Wprowadzenie do Programowania Funkcyjnego w Haskellu
 
 
 ## Interaktywna Praca z GHC
