@@ -38,21 +38,23 @@ data Resource = Resource String
 -- Expression type for integer operations
 data Expr
   = Var String                  -- Variable reference
+  | StringLit String            -- String literal
+  | Concat Expr Expr            -- concatenation
   | IntLit Int                  -- Integer literal
+  | Rand Expr Expr              -- Random integer selected uniformly from  a given interval  
   | Add Expr Expr               -- Addition
   | Sub Expr Expr               -- Subtraction
   | Mod Expr Expr               -- Modulo operation
-  | Eq Expr Expr                -- Equality comparison
-  | Lt Expr Expr                -- Less than
-  | Gt Expr Expr                -- Greater than
   deriving (Show, Eq)
 
 -- Statement constructs
 data Statement
   = Think Expr                             -- Think for computed time units
   | Eat Expr Resource Resource             -- Eat for computed time units using two resources
+  | Print String                           -- Print to stdout
+  | DeclareResource String                 -- Declare a global mutex resource 
   | Loop [Statement]                       -- Loop indefinitely
-  | Spawn Expr [Statement]                 -- Spawn n processes with statements
+  | Spawn Expr [Statement]                 -- Spawn named process with statements
   | LockAll [Expr] [String]                -- Atomically lock resources, binding results to variables
   | UnlockAll [Resource]                   -- Atomically unlock multiple resources
   | Let String Expr                        -- Variable binding
@@ -63,13 +65,19 @@ data Statement
 
 ### Example Program: Dining Philosophers
 
-Here's a text representation of the dining philosophers problem before parsing:
+Here's a text representation of the dining philosophers problem before parsing (this is just an approximation,
+and does not need to be the final syntax):
 
 ```
 // Dining Philosophers Problem
 
 // Define number of philosophers
 let numPhils = 5;
+
+// Declare fork resources
+foreach 0 to 4 as i {
+  declareResource "fork" ++ i;
+};
 
 // For each philosopher
 foreach 0 to 4 as i {
@@ -78,17 +86,17 @@ foreach 0 to 4 as i {
   let rightFork = (i + 1) % numPhils;
   
   // Spawn philosopher process
-  spawn 1 {
+  spawn "philosopher" ++ i {
     // Repeat indefinitely
     loop {
       // Think for a while
-      think 5;
+      think (rand 0 100);
       
       // Acquire both forks atomically
       lockAll [leftFork, rightFork] ["left", "right"];
       
       // Eat using the acquired forks
-      eat 10 resource left resource right;
+      eat (rand 0 100) resource left resource right;
       
       // Release forks
       unlockAll [resource left, resource right];
