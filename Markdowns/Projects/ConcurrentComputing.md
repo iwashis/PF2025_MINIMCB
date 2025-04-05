@@ -82,20 +82,22 @@ foreach 0 to 4 as i {
 // For each philosopher
 foreach 0 to 4 as i {
   // Define left and right fork indices
-  let leftFork = i;
-  let rightFork = (i + 1) % numPhils;
+  let leftFork = "fork" ++ i;
+  let rightFork = "fork" ++ (i + 1) % numPhils;
   
   // Spawn philosopher process
   spawn "philosopher" ++ i {
     // Repeat indefinitely
     loop {
       // Think for a while
+      print "Thinking";
       think (rand 0 100);
       
       // Acquire both forks atomically
       lockAll [leftFork, rightFork] ["left", "right"];
       
       // Eat using the acquired forks
+      print "Eating"
       eat (rand 0 100) resource left resource right;
       
       // Release forks
