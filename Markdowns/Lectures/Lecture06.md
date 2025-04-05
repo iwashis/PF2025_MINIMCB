@@ -64,7 +64,7 @@ a ───┐                 ┌─── b
      │                 │
 s ───┘                 └─── s
 ```
-Powyższa interpretacja jest konsekwencją następującego ciągu wzajemnych jednocznacznych odpowiedniości:
+Powyższa interpretacja jest konsekwencją następującego ciągu wzajemnych jednoznacznych odpowiedniości:
 
 ```
   f :: a -> State s b 
@@ -73,7 +73,7 @@ f' :: a -> (s -> (s,b))
 ────────────────────────
  f'' :: a -> s -> (s,b)
 ────────────────────────
-f''' :: (a,s) -> (s,b)
+f''' :: (s,a) -> (s,b)
 ```
 
 
@@ -98,7 +98,7 @@ staje się zwykłym składaniem strzałek typu `(s,x) -> (s, y)`.
 
 ## Podstawowe Operacje State
 
-Teraz zdefiniujemy podstawowe operacje dla monady State, które są niezwykle przydatne w praktycznych zastosowaniach:
+Teraz zdefiniujemy podstawowe operacje dla monady `State`, które są niezwykle przydatne w praktycznych zastosowaniach:
 
 ### Funkcja get
 
