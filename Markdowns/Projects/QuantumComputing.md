@@ -91,12 +91,3 @@ The implementation consists of several key components:
 ### Execution Model
 
 The language interpreter simulates quantum operations by maintaining a state vector or density matrix representation of the quantum system. Gate operations are implemented as matrix multiplications, and measurements cause probabilistic collapse of the quantum state.
-
-## Future Extensions
-
-- Support for larger qubit systems through optimized simulation
-- Integration with real quantum hardware backends
-- Advanced optimization passes for circuit simplification
-- Visual programming interface
-
-By providing high-level abstractions for quantum operations, this language makes quantum algorithm development more accessible while still exposing the essential concepts of quantum computing.

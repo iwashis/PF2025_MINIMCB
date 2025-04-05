@@ -157,13 +157,3 @@ The dataflow engine executes the pipeline by:
 2. Creating execution threads for parallel paths
 3. Establishing communication channels between nodes
 4. Pushing data through the pipeline, allowing concurrent execution of independent paths
-
-## Future Extensions
-
-- Visual editor for pipeline construction
-- Dynamic reconfiguration of pipelines at runtime
-- Distributed execution across multiple machines
-- Domain-specific node libraries for various applications
-- Automatic optimization based on runtime profiling
-
-This language makes complex data processing workflows more manageable by expressing them as interconnected components with clear data dependencies, enabling automatic parallelization and optimization.

@@ -149,13 +149,3 @@ The proof checker validates proofs by:
 2. For each step, verifying that it follows from previous steps using valid rules
 3. Checking that all paths in the proof lead to the desired conclusion
 4. Ensuring all cases are covered in case analysis and induction
-
-## Future Extensions
-
-- Interactive proof development environment
-- Automated proof search for simple theorems
-- Integration with external theorem provers (Coq, Isabelle, etc.)
-- Support for more mathematical domains (e.g., set theory, real analysis)
-- Natural language generation of proof explanations
-
-By providing a formal yet readable language for mathematical proofs, this project bridges the gap between human-understandable arguments and machine-verifiable logic, enabling both education and advanced mathematical verification.

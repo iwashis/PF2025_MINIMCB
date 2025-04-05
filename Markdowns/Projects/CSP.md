@@ -162,13 +162,3 @@ The constraint solver uses a combination of:
 2. **Search**: Systematically try values for variables
 3. **Backtracking**: Undo assignments that lead to contradictions
 4. **Heuristics**: Guide search to likely successful assignments first
-
-## Future Extensions
-
-- More global constraints for specific problem types
-- Learning from previous runs to improve search heuristics
-- Parallel solving strategies for large problems
-- Integration with external solvers for specific constraint types
-- Interactive solving with user guidance
-
-By providing a declarative way to express complex problems, this language allows users to focus on defining their problem correctly, rather than developing algorithms to solve it.

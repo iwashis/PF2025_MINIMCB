@@ -151,7 +151,7 @@ The implementation consists of several key components:
    - Implements error recovery strategies
 
 6. **Code Generator**: Produces parser implementation
-   - Generates code in target language (e.g., Java, C++, Python)
+   - Generates code in target language (e.g., Haskell)
    - Optimizes for performance
 
 ### Execution Model
@@ -168,13 +168,3 @@ During parsing of target input:
 2. The parser builds a parse tree according to grammar rules
 3. Semantic actions are executed at appropriate points
 4. The resulting data structure (often an AST) is returned
-
-## Future Extensions
-
-- Visual grammar editor with real-time testing
-- Grammar analysis tools for detecting ambiguities
-- Error recovery strategy templates
-- Performance optimization suggestions
-- Integration with code generation frameworks
-
-By providing a declarative way to define syntax, this language makes parser development more accessible and maintainable. It separates the concerns of syntax definition from parsing implementation details, allowing developers to focus on the structure of their language rather than the mechanics of parsing algorithms.

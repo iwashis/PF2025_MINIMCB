@@ -238,13 +238,3 @@ The reactive system operates by:
    - Transitioning to the new state
    - Executing entry actions for the new state
 4. Continuing to process events indefinitely
-
-## Future Extensions
-
-- Hierarchical state machines for complex behaviors
-- Formal verification of state machine properties
-- Visual editor for state machine design
-- Distributed reactive systems with communication
-- Optimization for resource-constrained environments
-
-By providing high-level abstractions for reactive behavior, this language simplifies the development of event-driven systems while enabling formal analysis and verification of their properties.
