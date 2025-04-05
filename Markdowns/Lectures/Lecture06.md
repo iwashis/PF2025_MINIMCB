@@ -6,13 +6,13 @@ Monada State jest fundamentalnym narzędziem umożliwiającym zarządzanie stane
 W dzisiejszym wykładzie najpierw przypomnimy podstawowe koncepcje związane z monadą State, 
 a następnie rozszerzymy naszą wiedzę o dodatkowe funkcjonalności i przeanalizujemy kilka praktycznych przykładów jej zastosowania.
 
-## Monada State - Przypomnienie
+## Monada State
 
 Monada State pozwala na modelowanie obliczeń, które mają dostęp do pewnego stanu, mogą go modyfikować i przekazywać dalej przez obliczenie.
 
-### Definicja Monady State
+### Definicja Parametrycznego Typu `State s a`
 
-Definicja monady State jest następująca:
+Definicja typu parametrycznego `State` jest następująca:
 
 ```haskell
 newtype State s a = State { runState :: s -> (s, a) }
@@ -23,9 +23,9 @@ Gdzie:
 - `a` to typ wyniku
 - `runState` to funkcja, która przyjmuje stan początkowy typu `s` i zwraca parę: nowy stan typu `s` oraz wynik typu `a`
 
-### Instancje Funktor, Applicative i Monad
+### Instancje Functor, Applicative i Monad
 
-Typ parametryczny State posiada instancje dla klas Functor, Applicative i Monad:
+Typ parametryczny State posiada instancje dla klas `Functor`, `Applicative` i `Monad`:
 
 ```haskell
 instance Functor (State s) where 
@@ -46,7 +46,7 @@ instance Applicative (State s) where
               (s', x) = f1 s     -- Uruchamiamy pierwsze obliczenie, dostajemy nowy stan s' i wynik x
               (s'', y) = f2 s'   -- Uruchamiamy drugie obliczenie z nowym stanem, dostajemy s'' i y
               z = f x y          -- Łączymy wyniki obliczeń za pomocą funkcji f
-              in (s'', z)        -- :: (s, c)
+            in (s'', z)          -- :: (s, c)
           
 instance Monad (State s) where 
   -- state :: State s a, runState state :: s -> (s,a) 
@@ -56,16 +56,27 @@ instance Monad (State s) where
 
 ### Interpretacja Diagramowa
 
-Monadę State można interpretować jako funkcję, która transformuje stan i produkuje wartość:
-
+Dla dowolnych typów `a, b, s` funkcję `f :: a -> State s b` możemy na diagramie interpretować w następujący sposób:
 ```
-f :: a -> State s b 
 a ───┐                 ┌─── b
      │                 │
      └──→[      f    ]─┘
      │                 │
 s ───┘                 └─── s
 ```
+Powyższa interpretacja jest konsekwencją następującego ciągu wzajemnych jednocznacznych odpowiedniości:
+
+```
+  f :: a -> State s b 
+────────────────────────
+f' :: a -> (s -> (s,b))
+────────────────────────
+ f'' :: a -> s -> (s,b)
+────────────────────────
+f''' :: (a,s) -> (s,b)
+```
+
+
 
 Kompozycja funkcji monadycznych (`>=>`) wygląda następująco:
 
@@ -82,10 +93,12 @@ a ───┐                 ┌─── b      b ───┐               
      │                 │                │                 │                │                 │
 s ───┘                 └─── s      s ───┘                 └─── s      s ───┘                 └─── s
 ```
+Oznacza to, że po zastosowaniu jednocznacznej odpowiedniości `f <=> f'''` przedstawionej powyżej operator `>=>`
+staje się zwykłym składaniem strzałek typu `(s,x) -> (s, y)`.
 
 ## Podstawowe Operacje State
 
-Teraz zdefiniujmy podstawowe operacje dla monady State, które są niezwykle przydatne w praktycznych zastosowaniach:
+Teraz zdefiniujemy podstawowe operacje dla monady State, które są niezwykle przydatne w praktycznych zastosowaniach:
 
 ### Funkcja get
 
@@ -132,7 +145,7 @@ s2 :: s ───┘                 └─── s1 :: s
 
 Przykład użycia:
 ```
-runState (put 10) 5 = (10, ())
+> runState (put 10) 5 = (10, ())
 ```
 
 ### Funkcja modify
@@ -154,7 +167,7 @@ modify f = do
 
 Przykład użycia:
 ```
-runState (modify (+10)) 5 = (15, ())
+> runState (modify (+10)) 5 = (15, ())
 ```
 
 ## Przykład 1: Licznik Porównań w Algorytmie Quicksort
@@ -194,7 +207,7 @@ quicksort (x:xs) = do
 
 Przykład użycia:
 ```
-runState (quicksort [3, 1, 4, 1, 5, 9, 2, 6]) 0
+> runState (quicksort [3, 1, 4, 1, 5, 9, 2, 6]) 0
 ```
 
 Wynik zawiera posortowaną listę oraz liczbę wykonanych porównań.
@@ -388,7 +401,7 @@ exampleMaze = [
 
 Przykładowe użycie:
 ```haskell
-runState findPath (initMazeState exampleMaze)
+> runState findPath (initMazeState exampleMaze)
 ```
 
 Wynik zawiera stan po zakończeniu poszukiwania ścieżki, w tym informację czy udało się znaleźć wyjście.

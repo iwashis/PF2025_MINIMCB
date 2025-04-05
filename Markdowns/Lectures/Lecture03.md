@@ -34,9 +34,9 @@ dla każdego nowego elementu tworzymy nową podlistę przez dodanie go do ostatn
 
 Przykłady:
 ```
-Prelude> initl "abc"
+> initl "abc"
 ["","a","ab","abc"]
-Prelude> initl [10,20,30]
+> initl [10,20,30]
 [[],[10],[10,20],[10,20,30]]
 ```
 
@@ -63,7 +63,7 @@ sumList = foldl (+) 0
 
 Przykład:
 ```
-Prelude> sumList [1,2,3,4,5]
+> sumList [1,2,3,4,5]
 15
 ```
 
@@ -80,7 +80,7 @@ reverseList = foldl (\acc x -> x : acc) []
 
 Przykład:
 ```
-Prelude> reverseList [1,2,3]
+> reverseList [1,2,3]
 [3,2,1]
 ```
 
@@ -100,7 +100,7 @@ countOccurrences y = foldl (\acc x -> if x == y then acc + 1 else acc) 0
 
 Przykład:
 ```
-Prelude> countOccurrences 'a' "abracadabra"
+> countOccurrences 'a' "abracadabra"
 5
 ```
 
@@ -168,9 +168,9 @@ treeContains x = getAny . foldMap (\y -> Any (y == x))
 
 Przykłady:
 ```
-Prelude> treeContains 7 tree2
+> treeContains 7 tree2
 True
-Prelude> treeContains 10 tree2
+> treeContains 10 tree2
 False
 ```
 
@@ -183,9 +183,9 @@ treeToList = foldMap (\x -> [x])
 
 Przykłady:
 ```
-Prelude> treeToList tree
+> treeToList tree
 ["b","c","a","d"]
-Prelude> treeToList tree2
+> treeToList tree2
 [5,7,1,3]
 ```
 

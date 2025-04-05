@@ -35,11 +35,11 @@ instance Applicative Maybe' where
 Przykłady użycia `Maybe'` jako funktor aplikatywny:
 
 ```
-Prelude> Just' (+3) <*> Just' 5
+> Just' (+3) <*> Just' 5
 Just' 8
-Prelude> Just' (*) <*> Just' 5 <*> Just' 3
+> Just' (*) <*> Just' 5 <*> Just' 3
 Just' 15
-Prelude> Nothing' <*> Just' 5
+> Nothing' <*> Just' 5
 Nothing'
 ```
 
@@ -66,7 +66,7 @@ instance Applicative MyList where
 Przykład użycia `MyList` jako funktor aplikatywny:
 
 ```
-Prelude> Con (+1) (Con (*2) Nil) <*> Con 3 (Con 4 Nil)
+> Con (+1) (Con (*2) Nil) <*> Con 3 (Con 4 Nil)
 Con 4 (Con 5 (Con 6 (Con 8 Nil)))
 ```
 
@@ -82,7 +82,7 @@ star fs args = [f x | (f, x) <- zip fs args]
 Ten operator działa inaczej - aplikuje każdą funkcję tylko do odpowiadającego jej argumentu:
 
 ```
-Prelude> star [(+1), (*2)] [3, 4]
+> star [(+1), (*2)] [3, 4]
 [4, 8]
 ```
 
@@ -143,11 +143,11 @@ createMultipleUsers = liftA2 createUser
 Przykłady:
 
 ```
-Prelude> maybeCreateUser (Just "Jan") (Just 30)
+> maybeCreateUser (Just "Jan") (Just 30)
 Just (User "Jan" 30)
-Prelude> maybeCreateUser Nothing (Just 30)
+> maybeCreateUser Nothing (Just 30)
 Nothing
-Prelude> createMultipleUsers ["Jan", "Anna"] [30, 25]
+> createMultipleUsers ["Jan", "Anna"] [30, 25]
 [User "Jan" 30, User "Anna" 25]
 ```
 
@@ -205,13 +205,13 @@ instance Monad Maybe' where
 Przykłady użycia monady `Maybe'`:
 
 ```
-Prelude> Just' 16 >>= fun
+> Just' 16 >>= fun
 Just' 4.0
-Prelude> Just' (-4) >>= fun
+> Just' (-4) >>= fun
 Nothing'
-Prelude> Nothing' >>= fun
+> Nothing' >>= fun
 Nothing'
-Prelude> Just' 3 >>= fun >>= g
+> Just' 3 >>= fun >>= g
 Just' 9.0
 ```
 
@@ -247,9 +247,9 @@ third = tail' >=> tail' >=> head'
 Przykłady:
 
 ```
-Prelude> third [1,2,3,4]
+> third [1,2,3,4]
 Just 3
-Prelude> third [1,2]
+> third [1,2]
 Nothing
 ```
 

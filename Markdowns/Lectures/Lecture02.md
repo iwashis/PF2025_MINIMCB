@@ -17,8 +17,8 @@ data BasicColors = Red | Blue | Green
 `BasicColors` ma trzy wartości konstruktora: `Red`, `Blue` i `Green`. Możemy używać go tak:
 
 ```
-Prelude> let kolor = Red
-Prelude> :t kolor
+> let kolor = Red
+> :t kolor
 kolor :: BasicColors
 ```
 
@@ -41,9 +41,9 @@ Typ `Shape` ma trzy różne konstruktory:
 Przykłady użycia:
 
 ```
-Prelude> let kwadrat = Rectangle (0,0) (5,5)
-Prelude> let kolo = Circle (3,3) 2
-Prelude> let punkt = Point (1,1)
+> let kwadrat = Rectangle (0,0) (5,5)
+> let kolo = Circle (3,3) 2
+> let punkt = Point (1,1)
 ```
 
 Teraz możemy zdefiniować funkcje operujące na tych kształtach. Na przykład, funkcja obliczająca pole powierzchni:
@@ -58,11 +58,11 @@ volume (Rectangle (x, y) (z, t)) = abs (z - x) * abs (t - y)
 Przykłady:
 
 ```
-Prelude> volume (Point (1,1))
+> volume (Point (1,1))
 0
-Prelude> volume (Rectangle (0,0) (3,4))
+> volume (Rectangle (0,0) (3,4))
 12.0
-Prelude> volume (Circle (0,0) 2)
+> volume (Circle (0,0) 2)
 12.566370614359172
 ```
 
@@ -77,9 +77,9 @@ changeRadiusIfCircle x = x
 Przykłady:
 
 ```
-Prelude> changeRadiusIfCircle (Circle (0,0) 2)
+> changeRadiusIfCircle (Circle (0,0) 2)
 Circle (0,0) 7
-Prelude> changeRadiusIfCircle (Rectangle (0,0) (3,4))
+> changeRadiusIfCircle (Rectangle (0,0) (3,4))
 Rectangle (0,0) (3,4)
 ```
 
@@ -112,11 +112,11 @@ p2 = Person2 "Tomek" "Kowalski" 25
 Rekordy automatycznie tworzą funkcje dostępu do pól, co ułatwia pracę z danymi:
 
 ```
-Prelude> name p2
+> name p2
 "Tomek"
-Prelude> surname p2
+> surname p2
 "Kowalski"
-Prelude> age p2
+> age p2
 25
 ```
 
@@ -135,9 +135,9 @@ Funkcja ta dodaje przedrostek "Mr." do imienia osoby, o ile nazwisko nie jest pu
 Przykłady:
 
 ```
-Prelude> addMr (Person2 "Jan" "Kowalski" 30)
+> addMr (Person2 "Jan" "Kowalski" 30)
 Person2 {name = "Mr.Jan", surname = "Kowalski", age = 30}
-Prelude> addMr (Person2 "Jan" "" 30)
+> addMr (Person2 "Jan" "" 30)
 Person2 {name = "Jan", surname = "", age = 30}
 ```
 
@@ -166,11 +166,11 @@ length2 (NonEmptyList _ list) = 1 + length2 list
 Przykłady:
 
 ```
-Prelude> length2 EmptyIntList
+> length2 EmptyIntList
 0
-Prelude> length2 (NonEmptyList 1 (NonEmptyList 2 EmptyIntList))
+> length2 (NonEmptyList 1 (NonEmptyList 2 EmptyIntList))
 2
-Prelude> length2 listExample
+> length2 listExample
 2
 ```
 
@@ -196,9 +196,9 @@ exampleTree = Node [1, 2] Empty (Node [4] Empty Empty)
 Typ `Tree a` oznacza drzewo przechowujące wartości typu `a`. Możemy tworzyć drzewa przechowujące liczby, napisy, listy, a nawet inne drzewa!
 
 ```
-Prelude> Node 5 (Node 3 Empty Empty) (Node 7 Empty Empty) :: Tree Int
+> Node 5 (Node 3 Empty Empty) (Node 7 Empty Empty) :: Tree Int
 Node 5 (Node 3 Empty Empty) (Node 7 Empty Empty)
-Prelude> Node "root" (Node "left" Empty Empty) (Node "right" Empty Empty) :: Tree String
+> Node "root" (Node "left" Empty Empty) (Node "right" Empty Empty) :: Tree String
 Node "root" (Node "left" Empty Empty) (Node "right" Empty Empty)
 ```
 
@@ -225,7 +225,7 @@ instance (Show a) => Show (List a) where
 Teraz możemy wyświetlać nasze listy w przyjazny (ale też dość pokraczny) sposób:
 
 ```
-Prelude> Head 1 (Head 50 EmptyList)
+> Head 1 (Head 50 EmptyList)
 1,50,
 ```
 
@@ -244,9 +244,9 @@ instance (Eq a) => Eq (List a) where
 Teraz możemy porównywać nasze listy:
 
 ```
-Prelude> Head 1 (Head 2 EmptyList) == Head 1 (Head 2 EmptyList)
+> Head 1 (Head 2 EmptyList) == Head 1 (Head 2 EmptyList)
 True
-Prelude> Head 1 (Head 2 EmptyList) == Head 1 (Head 3 EmptyList)
+> Head 1 (Head 2 EmptyList) == Head 1 (Head 3 EmptyList)
 False
 ```
 
@@ -267,7 +267,7 @@ volume2 h w = h * w
 Aliasy typów nie tworzą nowych typów, a jedynie nowe nazwy dla istniejących typów. Są one szczególnie przydatne do poprawy czytelności sygnatur funkcji:
 
 ```
-Prelude> volume2 3 4
+> volume2 3 4
 12
 ```
 
@@ -289,9 +289,9 @@ instance Functor List where
 Teraz możemy używać funkcji `fmap` do mapowania funkcji na wszystkie elementy naszej listy:
 
 ```
-Prelude> fmap (+1) (Head 1 (Head 2 EmptyList))
+> fmap (+1) (Head 1 (Head 2 EmptyList))
 2,3,
-Prelude> fmap show (Head 1 (Head 2 EmptyList))
+> fmap show (Head 1 (Head 2 EmptyList))
 "1","2",
 ```
 
@@ -315,11 +315,11 @@ instance Monoid (List a) where
 Teraz możemy łączyć nasze listy za pomocą operatora `<>`:
 
 ```
-Prelude> Head 1 (Head 2 EmptyList) <> Head 3 (Head 4 EmptyList)
+> Head 1 (Head 2 EmptyList) <> Head 3 (Head 4 EmptyList)
 1,2,3,4,
-Prelude> mempty <> Head 1 (Head 2 EmptyList)
+> mempty <> Head 1 (Head 2 EmptyList)
 1,2,
-Prelude> Head 1 (Head 2 EmptyList) <> mempty
+> Head 1 (Head 2 EmptyList) <> mempty
 1,2,
 ```
 

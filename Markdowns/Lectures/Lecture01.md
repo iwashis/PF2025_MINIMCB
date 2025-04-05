@@ -8,15 +8,15 @@ Haskell posiada interaktywny interpreter GHCi (Glasgow Haskell Compiler Interact
 ```
 $ ghci
 GHCi, version 8.10.7: https://www.haskell.org/ghc/  :? for help
-Prelude>
+>
 ```
 
 W GHCi możemy wprowadzać wyrażenia i natychmiast otrzymywać ich wartości:
 
 ```
-Prelude> 2 + 2
+> 2 + 2
 4
-Prelude> "Hello, " ++ "world!"
+> "Hello, " ++ "world!"
 "Hello, world!"
 ```
 
@@ -25,11 +25,11 @@ Prelude> "Hello, " ++ "world!"
 Jedną z najważniejszych cech Haskella jest jego silny statyczny system typów. Każde wyrażenie w Haskellu ma określony typ, który jest sprawdzany podczas kompilacji. Możemy sprawdzić typ wyrażenia za pomocą komendy `:t` lub `:type`:
 
 ```
-Prelude> :t 42
+> :t 42
 42 :: Num p => p
-Prelude> :t "Haskell"
+> :t "Haskell"
 "Haskell" :: [Char]
-Prelude> :t True
+> :t True
 True :: Bool
 ```
 
@@ -38,19 +38,19 @@ Zwróćmy uwagę, że typ liczby `42` jest polimorficzny - może być dowolnym t
 Możemy również definiować własne zmienne i sprawdzać ich typy:
 
 ```
-Prelude> let x = 10
-Prelude> let s = "Programowanie funkcyjne"
-Prelude> :t x
+> let x = 10
+> let s = "Programowanie funkcyjne"
+> :t x
 x :: Num p => p
-Prelude> :t s
+> :t s
 s :: [Char]
 ```
 
 W Haskellu możemy także jawnie podawać typy zmiennych:
 
 ```
-Prelude> let y :: Int; y = 20
-Prelude> :t y
+> let y :: Int; y = 20
+> :t y
 y :: Int
 ```
 
@@ -79,15 +79,15 @@ Warto zwrócić uwagę na sygnaturę typu `(Ord a) => [a] -> [a]`, która oznacz
 Spróbujmy teraz wykonać kilka przykładów w GHCi:
 
 ```
-Prelude> quicksort [3,1,4,1,5,9,2,6]
+> quicksort [3,1,4,1,5,9,2,6]
 [1,1,2,3,4,5,6,9]
-Prelude> quicksort "haskell"
+> quicksort "haskell"
 "aehklls"
-Prelude> quicksort []
+> quicksort []
 []
-Prelude> quicksort [7,7,7,7]
+> quicksort [7,7,7,7]
 [7,7,7,7]
-Prelude> quicksort [-10,5,0,-3,8]
+> quicksort [-10,5,0,-3,8]
 [-10,-3,0,5,8]
 ```
 
@@ -107,9 +107,9 @@ Sygnatura typu `Int -> (Int -> Int)` mówi nam, że `add` przyjmuje liczbę cał
 W praktyce możemy używać tej funkcji na dwa sposoby:
 
 ```
-Prelude> add 2 3
+> add 2 3
 5
-Prelude> (add 2) 3
+> (add 2) 3
 5
 ```
 
@@ -135,11 +135,11 @@ t = add 6
 Teraz `t` jest funkcją jednoargumentową:
 
 ```
-Prelude> t 4
+> t 4
 10
-Prelude> t 0
+> t 0
 6
-Prelude> map t [1,2,3]
+> map t [1,2,3]
 [7,8,9]
 ```
 
@@ -148,13 +148,13 @@ Częściowa aplikacja jest niezwykle przydatna w programowaniu funkcyjnym, ponie
 Możemy również częściowo aplikować funkcje wbudowane:
 
 ```
-Prelude> let addOne = (+ 1)
-Prelude> addOne 10
+> let addOne = (+ 1)
+> addOne 10
 11
-Prelude> let isPositive = (> 0)
-Prelude> isPositive 5
+> let isPositive = (> 0)
+> isPositive 5
 True
-Prelude> isPositive (-3)
+> isPositive (-3)
 False
 ```
 
@@ -171,9 +171,9 @@ ones = 1 : ones
 Ta definicja może wydawać się rekurencyjna i nieskończona, i dokładnie tak jest! Dzięki leniwej ewaluacji Haskell oblicza tylko tyle elementów, ile jest potrzebne:
 
 ```
-Prelude> take 5 ones
+> take 5 ones
 [1,1,1,1,1]
-Prelude> sum (take 100 ones)
+> sum (take 100 ones)
 100
 ```
 
@@ -186,14 +186,14 @@ naturals = 0 : map (+1) naturals
 Możemy teraz łatwo pobrać dowolną liczbę liczb naturalnych:
 
 ```
-Prelude> take 10 naturals
+> take 10 naturals
 [0,1,2,3,4,5,6,7,8,9]
 ```
 
 Lub znaleźć liczby parzyste:
 
 ```
-Prelude> take 10 (filter even naturals)
+> take 10 (filter even naturals)
 [0,2,4,6,8,10,12,14,16,18]
 ```
 
@@ -210,18 +210,18 @@ Ta definicja jest niemal dokładnym odzwierciedleniem matematycznej definicji ci
 Spróbujmy kilku przykładów:
 
 ```
-Prelude> take 10 fib
+> take 10 fib
 [0,1,1,2,3,5,8,13,21,34]
-Prelude> fib !! 6  -- element o indeksie 6 (siódmy element)
+> fib !! 6  -- element o indeksie 6 (siódmy element)
 8
-Prelude> fib !! 20
+> fib !! 20
 6765
 ```
 
 Możemy również znaleźć elementy ciągu Fibonacciego, które spełniają określone warunki:
 
 ```
-Prelude> take 5 (filter (>100) fib)
+> take 5 (filter (>100) fib)
 [144,233,377,610,987]
 ```
 
@@ -238,21 +238,21 @@ sum' (x : xs) = x + sum' xs
 Przetestujmy funkcję na kilku przykładach:
 
 ```
-Prelude> sum' []
+> sum' []
 0
-Prelude> sum' [1,2,3,4,5]
+> sum' [1,2,3,4,5]
 15
-Prelude> sum' [-3,5,10]
+> sum' [-3,5,10]
 12
 ```
 
 W praktyce często używamy funkcji wyższego rzędu, takich jak `map`, `filter` czy `foldr`:
 
 ```
-Prelude> map (*2) [1,2,3,4,5]  -- podwojenie każdego elementu
+> map (*2) [1,2,3,4,5]  -- podwojenie każdego elementu
 [2,4,6,8,10]
-Prelude> filter even [1,2,3,4,5]  -- wybranie elementów parzystych
+> filter even [1,2,3,4,5]  -- wybranie elementów parzystych
 [2,4]
-Prelude> foldr (+) 0 [1,2,3,4,5]  -- sumowanie (równoważne sum')
+> foldr (+) 0 [1,2,3,4,5]  -- sumowanie (równoważne sum')
 15
 ```
