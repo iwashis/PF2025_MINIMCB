@@ -33,7 +33,9 @@ instance Functor (State s) where
   fmap f state = State $ (\(s, x) -> (s, f x)) . runState state 
     -- Działanie: uruchamiamy state, dostajemy parę (stan, wynik),
     -- zachowujemy stan i aplikujemy funkcję f do wyniku
-
+```
+Instacja klasy `Applicative` jest następująca: 
+```haskell
 instance Applicative (State s) where 
   -- pure :: a -> State s a 
   -- Tworzy obliczenie stanowe, które nie zmienia stanu i zwraca wartość x
@@ -47,7 +49,9 @@ instance Applicative (State s) where
               (s'', y) = f2 s'   -- Uruchamiamy drugie obliczenie z nowym stanem, dostajemy s'' i y
               z = f x y          -- Łączymy wyniki obliczeń za pomocą funkcji f
             in (s'', z)          -- :: (s, c)
-          
+```
+I w końcu możemy zdefiniować instancję monady dla naszego funktora:
+```haskell
 instance Monad (State s) where 
   -- state :: State s a, runState state :: s -> (s,a) 
   -- f :: a -> State s b
@@ -232,8 +236,7 @@ Wynik zawiera posortowaną listę oraz liczbę wykonanych porównań.
 
 ## Przykład 2: Gra RPG
 
-Wykorzystajmy monadę State do modelowania prostej gry RPG, gdzie postać posiada poziom doświadczenia, 
-punkty życia i złoto. Zaczniemy od definiowania typów pomocnicznych.
+Wykorzystajmy monadę State do modelowania prostej gry RPG, gdzie postać posiada poziom doświadczenia, punkty życia i złoto. Zaczniemy od definiowania typów pomocnicznych.
 
 ```haskell
 data GameState = GameState {
@@ -288,6 +291,7 @@ runState (do
 ## Przykład 3: Nawigator po Labiryncie
 
 Wykorzystajmy monadę State do zaimplementowania nawigatora po labiryncie, który śledzi aktualną pozycję i odwiedzone komórki.
+
 Zaczynamy od typów:
 ```haskell
 type Position = (Int, Int)
@@ -326,7 +330,7 @@ move dir = do
     return False
 ```
 
-Kolejna, to funkcja oblicza nową pozycję po wykonaniu ruchu w danym kierunku
+Do definicji funkcji powyżej użyliśmy `movePosition` oraz `isValidMove`. Pierwsza, to funkcja oblicza nową pozycję po wykonaniu ruchu w danym kierunku:
 
 ```haskell
 movePosition :: Position -> Direction -> Position
@@ -335,7 +339,9 @@ movePosition (x, y) South = (x, y+1)
 movePosition (x, y) East = (x+1, y)
 movePosition (x, y) West = (x-1, y)
 ```
-oraz funkcja sprawdzająca czy ruch jest dozwolony (w granicach labiryntu i nie na ścianę)
+
+druga, to funkcja sprawdzająca czy ruch jest dozwolony (w granicach labiryntu i nie na ścianę):
+
 ```haskell
 isValidMove :: MazeMap -> Position -> Bool
 isValidMove maze (x, y) =
@@ -343,7 +349,10 @@ isValidMove maze (x, y) =
   x >= 0 && x < length (maze !! y) &&
   (maze !! y) !! x /= '#'
 ```
+
 W końcu:
+
+
 ```haskell
 -- Sprawdza czy pozycja jest wyjściem z labiryntu
 isExit :: MazeMap -> Position -> Bool
