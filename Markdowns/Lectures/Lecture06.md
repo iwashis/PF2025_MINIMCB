@@ -172,7 +172,8 @@ Przykład użycia:
 
 ## Przykład 1: Licznik Porównań w Algorytmie Quicksort
 
-Wykorzystajmy monadę State do zliczania liczby porównań wykonywanych podczas sortowania metodą quicksort:
+Wykorzystajmy monadę State do zliczania liczby porównań wykonywanych podczas sortowania metodą quicksort.
+Najpierw zdefiniujemy typy i pomocniczą funkcjonalność:
 
 ```haskell
 type Counter = State Int
@@ -180,13 +181,19 @@ type Counter = State Int
 -- Funkcja inkrementująca licznik
 incCounter :: Counter ()
 incCounter = modify (+1)
+```
 
--- Funkcja porównująca dwie wartości i inkrementująca licznik
+Funkcja porównująca dwie wartości i inkrementująca licznik:
+```haskell
 compareAndCount :: Ord a => a -> a -> Counter Bool
 compareAndCount x y = do
   incCounter
   return (x <= y)
+```
 
+I ostatecznie:
+
+```haskell
 -- Implementacja quicksort z użyciem monady Counter
 quicksort :: Ord a => [a] -> Counter [a]
 quicksort [] = return []
@@ -205,6 +212,17 @@ quicksort (x:xs) = do
   return (sortedLesser ++ [x] ++ sortedGreater)
 ```
 
+Zwróćmy uwagę na użycie funkcji `filterM` dostępnej w `Control.Monad`, której definicja jest następująca: 
+
+```
+filterM :: Monad m => (a -> m Bool) -> [a] -> m [a]
+filterM f [] = pure [] 
+filterM f (x:xs) = do
+  b <- f x
+  ys <- filterM f xs
+  if b then pure (x:ys) else pure ys 
+```
+
 Przykład użycia:
 ```
 > runState (quicksort [3, 1, 4, 1, 5, 9, 2, 6]) 0
@@ -214,7 +232,8 @@ Wynik zawiera posortowaną listę oraz liczbę wykonanych porównań.
 
 ## Przykład 2: Gra RPG
 
-Wykorzystajmy monadę State do modelowania prostej gry RPG, gdzie postać posiada poziom doświadczenia, punkty życia i złoto:
+Wykorzystajmy monadę State do modelowania prostej gry RPG, gdzie postać posiada poziom doświadczenia, 
+punkty życia i złoto. Zaczniemy od definiowania typów pomocnicznych.
 
 ```haskell
 data GameState = GameState {
@@ -224,22 +243,28 @@ data GameState = GameState {
 } deriving (Show)
 
 type Game = State GameState
+```
 
--- Funkcja zwiększająca doświadczenie postaci
+Następnie wprowadzamy podstawową funkcjonalność. Funkcja zwiększająca doświadczenie postaci:
+```haskell
 gainExperience :: Int -> Game ()
 gainExperience exp = modify $ \state ->
   state { experience = experience state + exp }
+```
 
--- Funkcja zadająca obrażenia postaci
--- Zwraca True jeśli postać nadal żyje
+Teraz, napiszemy funkcję zadającą obrażenia postaci, która zwraca wartość `True` jeśli postać nadal żyje.
+
+```haskell
 takeDamage :: Int -> Game Bool
 takeDamage amount = do
   state <- get
   let newHealth = max 0 (health state - amount)
   put $ state { health = newHealth }
   return (newHealth > 0)
+```
 
--- Funkcja dodająca złoto do ekwipunku
+I wreszcie wprowadzamy funkcję dodającą złoto do ekwipunku.
+```
 collectGold :: Int -> Game Int
 collectGold amount = do
   state <- get
@@ -262,8 +287,8 @@ runState (do
 
 ## Przykład 3: Nawigator po Labiryncie
 
-Wykorzystajmy monadę State do zaimplementowania nawigatora po labiryncie, który śledzi aktualną pozycję i odwiedzone komórki:
-
+Wykorzystajmy monadę State do zaimplementowania nawigatora po labiryncie, który śledzi aktualną pozycję i odwiedzone komórki.
+Zaczynamy od typów:
 ```haskell
 type Position = (Int, Int)
 type MazeMap = [[Char]]  -- '#' dla ścian, '.' dla pustych przestrzeni, 'S' dla startu, 'E' dla wyjścia
@@ -279,8 +304,10 @@ type MazeNavigator = State MazeState
 
 data Direction = North | East | South | West
   deriving (Show, Eq)
+```
 
--- Funkcja próbująca wykonać ruch w danym kierunku
+Dalej, wprowadzamy funkcjonalności. Pierwsza to funkcja próbująca wykonać ruch w danym kierunku
+```haskell
 move :: Direction -> MazeNavigator Bool
 move dir = do
   state <- get
@@ -297,21 +324,27 @@ move dir = do
     return True
   else
     return False
+```
 
--- Funkcja pomocnicza: oblicza nową pozycję po wykonaniu ruchu w danym kierunku
+Kolejna, to funkcja oblicza nową pozycję po wykonaniu ruchu w danym kierunku
+
+```haskell
 movePosition :: Position -> Direction -> Position
 movePosition (x, y) North = (x, y-1)
 movePosition (x, y) South = (x, y+1)
 movePosition (x, y) East = (x+1, y)
 movePosition (x, y) West = (x-1, y)
-
--- Sprawdza czy ruch jest dozwolony (w granicach labiryntu i nie na ścianę)
+```
+oraz funkcja sprawdzająca czy ruch jest dozwolony (w granicach labiryntu i nie na ścianę)
+```haskell
 isValidMove :: MazeMap -> Position -> Bool
 isValidMove maze (x, y) =
   y >= 0 && y < length maze &&
   x >= 0 && x < length (maze !! y) &&
   (maze !! y) !! x /= '#'
-
+```
+W końcu:
+```haskell
 -- Sprawdza czy pozycja jest wyjściem z labiryntu
 isExit :: MazeMap -> Position -> Bool
 isExit maze (x, y) = (maze !! y) !! x == 'E'
