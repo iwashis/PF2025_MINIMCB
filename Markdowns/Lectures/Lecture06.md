@@ -37,18 +37,16 @@ instance Functor (State s) where
 Instacja klasy `Applicative` jest następująca: 
 ```haskell
 instance Applicative (State s) where 
-  -- pure :: a -> State s a 
   -- Tworzy obliczenie stanowe, które nie zmienia stanu i zwraca wartość x
   pure x = State (,x) -- funkcja (,x) to to samo co \s -> (s, x)
   
   -- Implementacja liftA2 dla State
   liftA2 f (State f1) (State f2) = State g -- g :: s -> (s, c) 
     where 
-      g s = let 
-              (s', x) = f1 s     -- Uruchamiamy pierwsze obliczenie, dostajemy nowy stan s' i wynik x
-              (s'', y) = f2 s'   -- Uruchamiamy drugie obliczenie z nowym stanem, dostajemy s'' i y
-              z = f x y          -- Łączymy wyniki obliczeń za pomocą funkcji f
-            in (s'', z)          -- :: (s, c)
+      g s = let (s', x) = f1 s     -- Uruchamiamy pierwsze obliczenie, dostajemy nowy stan s' i wynik x
+                (s'', y) = f2 s'   -- Uruchamiamy drugie obliczenie z nowym stanem, dostajemy s'' i y
+                z = f x y          -- Łączymy wyniki obliczeń za pomocą funkcji f
+            in (s'', z)          
 ```
 I w końcu możemy zdefiniować instancję monady dla naszego funktora:
 ```haskell
@@ -61,13 +59,15 @@ instance Monad (State s) where
 ### Interpretacja Diagramowa
 
 Dla dowolnych typów `a, b, s` funkcję `f :: a -> State s b` możemy na diagramie interpretować w następujący sposób:
+
 ```
-a ───┐                 ┌─── b
-     │                 │
-     └──→[      f    ]─┘
-     │                 │
-s ───┘                 └─── s
+a ───┐          ┌─── b
+     │          │
+     └──→[  f ]─┘
+     │          │
+s ───┘          └─── s
 ```
+
 Powyższa interpretacja jest konsekwencją następującego ciągu wzajemnych jednoznacznych odpowiedniości:
 
 ```
@@ -91,11 +91,11 @@ f3 :: c -> State s d
 
 f1 >=> f2 >=> f3:
 
-a ───┐                 ┌─── b      b ───┐                 ┌─── c      c ───┐                 ┌─── d
-     │                 │                │                 │                │                 │
-     └──→[     f1    ]─┘                └──→[     f2    ]─┘                └──→[     f3    ]─┘
-     │                 │                │                 │                │                 │
-s ───┘                 └─── s      s ───┘                 └─── s      s ───┘                 └─── s
+a ───┐           ┌─── b  b ───┐           ┌─── c  c ───┐           ┌─── d
+     │           │            │           │            │           │
+     └──→[ f1  ]─┘            └──→[ f2  ]─┘            └──→[ f3  ]─┘
+     │           │            │           │            │           │
+s ───┘           └─── s  s ───┘           └─── s  s ───┘           └─── s
 ```
 Oznacza to, że po zastosowaniu jednocznacznej odpowiedniości `f <=> f'''` przedstawionej powyżej operator `>=>`
 staje się zwykłym składaniem strzałek typu `(s,x) -> (s, y)`.
@@ -357,26 +357,26 @@ W końcu:
 -- Sprawdza czy pozycja jest wyjściem z labiryntu
 isExit :: MazeMap -> Position -> Bool
 isExit maze (x, y) = (maze !! y) !! x == 'E'
+```
 
+oraz:
+
+```haskell
 -- Próbuje wykonać ruch w danym kierunku i kontynuuje szukanie ścieżki
 tryDirection :: Direction -> MazeNavigator Bool
 tryDirection dir = do
   state <- get
-  
   -- Jeśli już znaleźliśmy ścieżkę, zwracamy True
   if pathFound state then
     return True
   else do
     -- Zapamiętujemy aktualny stan przed próbą ruchu
     let oldState = state
-    
     -- Próbujemy wykonać ruch
     success <- move dir
-    
     if success then do
       -- Jeśli ruch się powiódł, sprawdzamy czy to wyjście
       newState <- get
-      
       if isExit (maze newState) (position newState) then
         -- Znaleźliśmy wyjście!
         put $ newState { pathFound = True }
@@ -384,7 +384,6 @@ tryDirection dir = do
       else do
         -- Kontynuujemy poszukiwanie ścieżki
         found <- findPath
-        
         if found then
           return True
         else do
@@ -394,12 +393,13 @@ tryDirection dir = do
     else
       -- Ruch się nie powiódł
       return False
-
+```
+Dodatkowo, 
+```haskell
 -- Znajduje ścieżkę przez labirynt używając przeszukiwania w głąb (DFS)
 findPath :: MazeNavigator Bool
 findPath = do
   state <- get
-  
   -- Jeśli już znaleźliśmy ścieżkę, zwracamy True
   if pathFound state then
     return True
@@ -413,7 +413,9 @@ findPath = do
         if south then return True else do
           west <- tryDirection West
           west  -- Zwracamy wynik ostatniej próby
-
+```
+i
+```haskell
 -- Inicjalizuje stan labiryntu na podstawie mapy
 initMazeState :: MazeMap -> MazeState
 initMazeState mazeMap = 
