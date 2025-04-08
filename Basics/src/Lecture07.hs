@@ -5,6 +5,11 @@ module Lecture07 where
 import Lecture05  -- Importujemy moduł Lecture05, który zawiera definicję monady State
 -- Krotkie przypomnienie
 -- f :: a -> State s b 
+-- ---------------------
+-- a -> (s -> (s,b))
+-- a -> s -> (s,b)
+-- ---------------------
+-- f' :: (s,a) -> (s,b)
 -- a ───┐                 ┌─── b
 --      │                 │
 --      └──→[      f    ]─┘
@@ -21,8 +26,10 @@ import Lecture05  -- Importujemy moduł Lecture05, który zawiera definicję mon
 --      └──→[     f1    ]─┘                └──→[     f2    ]─┘                └──→[     f3    ]─┘
 --      │                 │                │                 │                │                 │
 -- s ───┘                 └─── s      s ───┘                 └─── s      s ───┘                 └─── s
--- 
-
+-- Słownie, funkcje o typie
+-- a -> State s b
+-- to funkcje ktore przyjmują na wejściu element a i stan typu s i zwracają nowy stan typu s oraz wartość typu b.
+--
 -- Dodatkowe funkcjonalnosci
 
 -- Funkcja get pozwala na odczytanie aktualnego stanu.
@@ -42,7 +49,7 @@ import Lecture05  -- Importujemy moduł Lecture05, który zawiera definicję mon
 -- Pierwsza wartość (5) to nowy stan (niezmieniony)
 -- Druga wartość (5) to zwrócona wartość (aktualny stan)
 get :: State s s 
-get = undefined 
+get = State $ \s -> (s,s) -- newtype State s a = State { runState : s -> (s,a)} 
 
 -- Funkcja put pozwala na ustawienie nowego stanu.
 -- W monadzie stanu, put przyjmuje nowy stan i go ustawia.
@@ -63,13 +70,16 @@ get = undefined
 -- Pierwsza wartość (10) to nowy stan (został zmieniony z 5 na 10)
 -- Druga wartość (()) to zwrócona wartość (w tym przypadku nic istotnego)
 put :: s -> State s ()
-put s = undefined 
-
+put state = State $ const (state, ()) 
+-- const definiujemy następująco:
+-- const :: b -> (a -> b)
+-- const x = \_ -> x
+--
 -- Funkcja modify pozwala na modyfikację aktualnego stanu za pomocą funkcji.
 -- Przykład użycia:
 -- runState (modify (+10)) 5 = (15, ())
 modify :: (s -> s) -> State s ()
-modify f = undefined 
+modify f = State $ \s -> ( f s, ())  
 
 
 -- Przyklad 1.
@@ -77,10 +87,56 @@ modify f = undefined
 -- Dodaj funkcje zwiększające i zmniejszające licznik oraz funkcję zwracającą aktualny stan licznika.
 -- Uzyj tej monady do napisania funkcji quicksort :: (Ord a) => [a] -> Counter [a]
 -- ktora sortuje wejsciowa liste, a w stanie zwraca licznik zawierajacy liczbe wykonanych porownan.
-
+-- quicksort :: (Ord a) => [a] -> [a]
+-- quicksort [] = []
+-- quicksort (x : xs) = quicksort le ++ [x] ++ quicksort gr
+--   where
+--     le = filter (< x) xs     -- elementy mniejsze od pivota
+--     gr = filter (>= x) xs    -- elementy większe lub równe pivotowi
+--
 type Counter = State Int
 quicksort :: Ord a => [a] -> Counter [a]
-quicksort = undefined
+-- quicksort : [a] -> State Int [a]
+--  [a] -> Int -> (Int, [a])
+-- (Int, [a]) -> (Int, [a])
+quicksort [] = return [] -- State \s -> (s, [])
+quicksort (x:xs) = do
+  l <- quicksort le 
+  g <- quicksort gr 
+  -- s <- get 
+  -- put $ s + numberOfComp
+  modify (+ numberOfComp)
+  pure $ l ++ [x] ++ g
+  where
+    le = filter (< x) xs     -- elementy mniejsze od pivota
+    gr = filter (>= x) xs    -- elementy większe lub równe pivotowi
+    numberOfComp = 2 * length xs
+
+filterM :: (Monad m) =>  (a -> m Bool) -> [a] -> m [a]
+filterM _ [] = pure []
+filterM f (x:xs) = do 
+  isTrue <- f x 
+  ys <- filterM f xs
+  if isTrue then pure (x:ys) else pure ys 
+
+quicksort' :: Ord a => [a] -> Counter [a]
+quicksort' [] = pure [] 
+quicksort' (x:xs) = do 
+  l <- filterM lessThanX xs 
+  g <- filterM greaterThanX xs 
+  left <- quicksort' l 
+  right <- quicksort' g
+  pure $ left ++ [x] ++ right
+  where 
+    lessThanX y = do 
+      modify (+1)
+      pure (y < x) -- Counter Bool
+    greaterThanX y  = do 
+     modify (+1)
+     pure (y >= x) 
+
+    
+    
 
 
 
@@ -101,24 +157,50 @@ quicksort = undefined
 
 
 -- Definicja stanu gry
-data GameState -- = ...
+data GameState = GameState { 
+    experience :: Int, 
+    health :: Int, 
+    gold :: Int
+  } 
+  deriving Show
 
 type Game = State GameState
 
 -- Funkcja zwiększająca doświadczenie postaci
 gainExperience :: Int -> Game ()
-gainExperience = undefined
+gainExperience exp = modify f  
+  where 
+    f :: GameState -> GameState 
+    f (GameState e h g) = GameState (e + exp) h g -- da sie troszke ladniej zapisac korzystajac z rozszerzen jezyka
+
 
 -- Funkcja zadająca obrażenia postaci
 -- Zwraca True jeśli postać nadal żyje
 takeDamage :: Int -> Game Bool
-takeDamage = undefined 
+takeDamage d = do 
+  modify f 
+  gameState <- get 
+  pure $ health gameState > 0
+  where 
+   f (GameState e h g) = GameState e (h - d) g
 
 -- Funkcja dodająca złoto do ekwipunku
 collectGold :: Int -> Game Int
-collectGold = undefined  -- Zwraca aktualną ilość złota
+collectGold additionalGold = do  -- Zwraca aktualną ilość złota
+  modify f
+  gameState <- get 
+  pure $ gold gameState
+  where 
+    f (GameState e h g ) = GameState e h (g + additionalGold)
 
 
+gameExample = runState (do
+    gainExperience 100
+    alive <- takeDamage 10
+    if alive 
+        then collectGold 50
+        else return 0
+    ) (GameState 0 100 0)
 
 -- Przykład 3.
 -- Nawigator po labiryncie z użyciem monady State
