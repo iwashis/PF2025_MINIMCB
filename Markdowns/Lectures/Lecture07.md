@@ -27,48 +27,19 @@ Gdzie:
 
 Jednakże, rzeczywista implementacja IO w Haskellu jest ukryta przed programistą, aby zapewnić bezpieczeństwo i niezmienność. Faktyczny typ `World` nigdy nie jest dostępny bezpośrednio.
 
-### Instancje Functor, Applicative i Monad
-
-IO jest instancją klas `Functor`, `Applicative` i `Monad`:
-
-```haskell
-instance Functor IO where
-  -- fmap :: (a -> b) -> IO a -> IO b
-  fmap f ioa = IO $ \world -> 
-    let (world', a) = runIO ioa world
-    in (world', f a)
-
-instance Applicative IO where
-  -- pure :: a -> IO a
-  pure a = IO $ \world -> (world, a)
-  
-  -- (<*>) :: IO (a -> b) -> IO a -> IO b
-  iof <*> ioa = IO $ \world ->
-    let (world', f) = runIO iof world
-        (world'', a) = runIO ioa world'
-    in (world'', f a)
-
-instance Monad IO where
-  -- (>>=) :: IO a -> (a -> IO b) -> IO b
-  ioa >>= f = IO $ \world ->
-    let (world', a) = runIO ioa world
-        iob = f a
-    in runIO iob world'
-```
 
 ### Interpretacja Diagramowa
 
-Podobnie jak w przypadku monady State, funkcje wykorzystujące IO można interpretować diagramowo:
+Podobnie jak w przypadku monady State, funkcje `f :: a -> IO b` wykorzystujące IO można interpretować diagramowo:
 
 ```
-a ───┐          ┌─── b
-     │          │
-     └──→[  f ]─┘
-     │          │
+a   ───┐          ┌─── b
+       │          │
+       └──→[  f ]─┘
+       │          │
 World ─┘          └─── World
 ```
 
-Gdzie `f :: a -> IO b`.
 
 ### Podstawowe Operacje IO
 
@@ -146,11 +117,26 @@ Gdzie:
 
 Oto kilka popularnych transformatorów monad:
 
-1. `StateT` - dodaje stan do dowolnej monady
+1. `StateT` - dodaje stan do dowolnej monady. Przypomnijmy, że:
+```haskell
+newtype StateT s m a = StateT { runStateT :: s -> m (s, a) }
+```
 2. `ReaderT` - dodaje środowisko tylko do odczytu
+```haskell
+newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
+```
 3. `WriterT` - dodaje możliwość akumulowania wartości (np. logów)
+```haskell
+newtype WriterT w m a = WriterT { runWriterT :: m (a, w) }
+```
 4. `ExceptT` - dodaje obsługę błędów
+```haskell
+newtype ExceptT e m a = ExceptT { runExceptT :: m (Either e a) }
+```
 5. `MaybeT` - dodaje możliwość braku wartości
+```haskell
+newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+```
 
 ### Instancje dla StateT
 
