@@ -44,7 +44,7 @@ knights (x,y) = filter onBoard jumps
     onBoard (a,b) = (a>0) && (b > 0) && (a<= 8) && (b<=8)
 
 knightPaths :: Int -> (Int, Int) -> (Int, Int) -> [[(Int, Int)]]
-knightPaths 0 (x,y) (a,b) = if (x,y) == (a,b) then [[(x,y)]] else [] 
+knightPaths 0 (x,y) (a,b) = [[(x,y)] | (x,y) == (a,b)] 
 knightPaths n (x,y) (a,b) = do 
   (x',y') <- knights (x,y)
   path <- knightPaths (n-1) (x',y') (a,b)
@@ -87,21 +87,21 @@ runningSum (x:xs) = do
 --
 -- 5. **Monada Writer do akumulacji wyników**  
 --
---    Zaimplementuj funkcję `countNodes :: Tree a -> Writer (Sum Int) Int`, która liczy liczbę węzłów 
+--    Zaimplementuj funkcję `countNodes :: Tree a -> Writer (Sum Int) ()`, która liczy liczbę węzłów 
 --    w drzewie binarnym, używając monady Writer do akumulacji sumy. Typ drzewa zdefiniuj jako 
 --    `data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)` oraz do rozwiazania uzyj funkcji `tell`. 
 --
 data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)
-countNodes :: Tree a -> Writer (Sum Int) Int 
-countNodes Empty = pure 0  
-countNodes (Leaf a) = do 
+countNodes :: Tree a -> Writer (Sum Int) () 
+countNodes Empty = pure ()  
+countNodes (Leaf _) = do 
   tell (Sum 1)
-  pure 1
-countNodes (Node a left right) = do 
+  pure ()
+countNodes (Node _ left right) = do 
   tell (Sum 1)
   countNodes left 
   countNodes right
-  pure 1
+  pure () 
 
 
 exampleTree = Node 3 (Leaf 5) (Leaf 6) 
