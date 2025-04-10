@@ -1,36 +1,24 @@
-I'll create a similar project description for a language focused on linear algebra and calculus expressions.
-
 # MathLang: A Language for Linear Algebra and Calculus
+
 ## Project Overview
-MathLang is a domain-specific language designed to model linear algebra and calculus expressions with mathematical precision. The language aims to provide an intuitive syntax while maintaining rigorous semantics that closely mirror mathematical notation.
+MathLang is a domain-specific language designed to model linear algebra and calculus expressions with mathematical precision. The language provides an intuitive syntax that closely mirrors mathematical notation while maintaining rigorous semantics.
 
-### Key Features
-- **Vectors and Matrices**: First-class support for linear algebra constructs
-- **Differential Operators**: Native calculus operations including derivatives and integrals
-- **Function Composition**: Easy function definition and composition
-- **Symbolic Manipulation**: Support for symbolic computation and simplification
+## Key Goals
+1. **Parser Implementation**: Convert mathematical notation into an AST
+2. **Expression Evaluator & Symbolic Engine**: Perform calculations and symbolic manipulations
+3. **Test Suite**: Ensure correctness through unit and property-based testing
 
-## Language Syntax
-### AST Definition
+## Simplified Syntax Definition
+
 ```haskell
 -- A Program is a collection of definitions and an expression to evaluate
 data Program = Program [Definition] Expr
   deriving (Show, Eq)
 
--- Definitions for functions, variables, and custom operators
+-- Definitions for functions and variables
 data Definition 
   = FuncDef String [String] Expr
   | VarDef String Expr
-  | OperatorDef String [String] Expr
-  deriving (Show, Eq)
-
--- Types for mathematical expressions
-data Type
-  = ScalarType                     -- Real number
-  | VectorType Int                 -- Vector with dimension
-  | MatrixType Int Int             -- Matrix with dimensions
-  | FunctionType Type Type         -- Function type
-  | SymbolicType                   -- Symbolic expression
   deriving (Show, Eq)
 
 -- Expressions
@@ -44,20 +32,15 @@ data Expr
   | Mul Expr Expr                  -- Multiplication (scalar, vector, or matrix)
   | Div Expr Expr                  -- Division
   | Dot Expr Expr                  -- Dot product
-  | Cross Expr Expr                -- Cross product
   | Transpose Expr                 -- Matrix transpose
-  | Inverse Expr                   -- Matrix inverse
   | Derivative Expr Expr           -- Partial derivative (with respect to)
-  | Integral Expr Expr Expr Expr   -- Definite integral (expr, var, lower, upper)
-  | Limit Expr Expr Expr           -- Limit (expr, var, approach)
   | Apply Expr [Expr]              -- Function application
   | Lambda [String] Expr           -- Anonymous function
   | Let String Expr Expr           -- Local binding
-  | If Expr Expr Expr              -- Conditional
   deriving (Show, Eq)
 ```
 
-### Example Program: Matrix Operations and Gradient Descent
+## Example Program
 ```
 -- Define a matrix multiplication function
 def matmul(A, B) =
@@ -73,37 +56,48 @@ def loss(X, y, theta) =
 def gradient(X, y, theta) =
   derivative(loss(X, y, theta), theta)
 
--- Gradient descent step
-def gradientStep(X, y, theta, learningRate) =
-  theta - learningRate * gradient(X, y, theta)
-
 -- Main program
--- Create data matrix X and target vector y
 let X = [[1, 2], [1, 3], [1, 4]] in
 let y = [2, 3.5, 4.8] in
 let initialTheta = [0, 0] in
-let learningRate = 0.01 in
   
--- Perform 5 steps of gradient descent
-let theta1 = gradientStep(X, y, initialTheta, learningRate) in
-let theta2 = gradientStep(X, y, theta1, learningRate) in
-let theta3 = gradientStep(X, y, theta2, learningRate) in
-let theta4 = gradientStep(X, y, theta3, learningRate) in
-let theta5 = gradientStep(X, y, theta4, learningRate) in
-  
--- Return final parameters and predicted values
-[theta5, X * theta5]
+-- Calculate gradient at initial point
+gradient(X, y, initialTheta)
 ```
 
-## Implementation
-The implementation consists of:
-1. **Parser**: Converts mathematical notation to AST
-2. **Symbolic Engine**: Performs algebraic simplification and manipulation
-3. **Differentiator**: Computes symbolic derivatives
-4. **Evaluator**: Numeric computation of expressions
-5. **Optimizer**: Simplifies expressions for efficient computation
+## Implementation Components
 
-### Evaluation Model
-- Eager evaluation for numeric computations
-- Lazy evaluation for symbolic manipulations
-- Dimensional analysis during type checking
+### 1. Parser
+- Process mathematical notation into AST
+- Handle variable and function definitions
+- Support vector and matrix literals
+- Parse mathematical operators with proper precedence
+- Generate meaningful error messages for syntax issues
+- Support comments and basic error recovery
+
+### 2. Expression Evaluator & Symbolic Engine
+- Implement numeric evaluation for basic operations
+- Handle vector and matrix operations (addition, multiplication, dot product)
+- Perform symbolic differentiation
+- Apply algebraic simplification rules
+- Implement dimensional analysis for type checking
+- Support function application and composition
+- Provide clear error messages for dimension mismatches
+
+### 3. Test Suite
+- **Unit Tests**:
+  - Parser correctness for various inputs
+  - Basic arithmetic operations
+  - Vector and matrix operations
+  - Derivative calculations
+  - Function application
+  - Expression simplification
+  - Variable binding and scoping
+  
+- **Property-Based Testing**:
+  - Generate random valid expressions
+  - Verify mathematical properties (associativity, distributivity)
+  - Test dimensional consistency
+  - Check derivative rules (product rule, chain rule)
+  - Ensure matrix operation correctness
+  - Test symbolic simplification properties

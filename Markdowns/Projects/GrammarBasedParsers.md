@@ -1,33 +1,17 @@
 # Grammar-Based Parsing Language
 
 ## Project Overview
+This project implements a domain-specific language for defining formal grammars and generating parsers from them. The language allows users to specify syntax rules in a readable format, associate semantic actions with parsing events, and generate parsers that convert text into structured representations.
 
-This project implements a domain-specific language for defining formal grammars and generating parsers from them. The language allows users to specify syntax rules, associating semantic actions with parsing events, and generate efficient parsers that convert text into structured representations.
+## Key Goals
+1. **Parser Implementation**: Convert grammar specifications into an AST
+2. **Grammar Analyzer & Parser Generator**: Analyze grammar structure and generate parsing code
+3. **Test Suite**: Ensure correctness through unit and property-based testing
 
-### Key Features
-
-- **Grammar Rule Definition**: Express language syntax in a readable format
-- **Production Alternatives**: Support for choice, sequence, repetition
-- **Semantic Actions**: Associate code with successful parsing events
-- **Error Handling**: Customizable error reporting and recovery
-- **Lexical Analysis**: Integrated token definition and recognition
-
-### Applications
-
-- Compiler and interpreter development
-- Domain-specific language implementation
-- Data format parsing (configuration files, markup)
-- Natural language processing components
-- Protocol message parsing
-
-## Language Syntax
-
-The language uses a notation similar to Extended Backus-Naur Form (EBNF) with extensions for semantic actions and parser directives.
-
-### Haskell AST Definition
+## Simplified Syntax Definition
 
 ```haskell
--- A Program is a collection of grammar rules
+-- A Program is a collection of grammar rules and lexer rules
 data Program = Program [Rule] [LexerRule]
   deriving (Show, Eq)
 
@@ -43,15 +27,13 @@ data LexerRule = LexerRule String String (Maybe Action)
 data Nonterminal = Nonterminal String
   deriving (Show, Eq)
 
--- Different types of productions in a grammar rule
+-- Core production types
 data Production
   = Sequence [Symbol]              -- Sequence of symbols
   | Choice [Production]            -- Alternative productions
   | Optional Production            -- Optional production (0 or 1)
   | Repeat Production              -- Zero or more repetitions
   | RepeatOneOrMore Production     -- One or more repetitions
-  | Group Production               -- Grouping for clarity
-  | Lookahead Production Bool      -- Positive or negative lookahead
   | Action Production String       -- Semantic action
   deriving (Show, Eq)
 
@@ -67,104 +49,54 @@ data Action = Action String
   deriving (Show, Eq)
 ```
 
-### Example Program: SQL Query Parser
-
-Here's a text representation of an SQL parser grammar before parsing:
-
+## Example Grammar
 ```
-// SQL Query Parser Grammar
+// Simple Arithmetic Expression Grammar
 
-// Main query structure
-Query ::= SelectClause FromClause [WhereClause] [GroupByClause]
-          [HavingClause] [OrderByClause]
-        @ BuildQueryObject;
+// Main expression structure
+Expr ::= Term (("+" | "-") Term)*
+       @ BuildExprNode;
 
-// Select clause
-SelectClause ::= "SELECT" ["DISTINCT" | "ALL"] ColumnList
-              @ BuildSelectClause;
+// Term in an expression
+Term ::= Factor (("*" | "/") Factor)*
+       @ BuildTermNode;
 
-// From clause
-FromClause ::= "FROM" TableReferences
-             @ BuildFromClause;
-
-// Where clause
-WhereClause ::= "WHERE" Expression
-              @ BuildWhereClause;
-
-// Column list can be * or a list of column items
-ColumnList ::= "*" | ColumnItem ("," ColumnItem)*
-             @ BuildColumnList;
-
-// Column item with optional alias
-ColumnItem ::= Expression ["AS" Identifier]
-             @ BuildColumnItem;
-
-// Expression can be various types
-Expression ::= BinaryExpression | FunctionCall | Column | Literal
-             @ EvaluateExpression;
-
-// Binary expression with operator
-BinaryExpression ::= Expression Operator Expression
-                   @ BuildBinaryExpr;
-
-// Operators
-Operator ::= "=" | "<" | ">" | "<=" | ">=" | "!=" | "LIKE" | "IN"
-           @ BuildOperator;
-
-// Function call
-FunctionCall ::= Identifier "(" [Expression ("," Expression)*] ")"
-               @ BuildFunctionCall;
-
-// Column reference
-Column ::= [TableName "."] Identifier
-         @ BuildColumnRef;
+// Factor can be a number, variable, or parenthesized expression
+Factor ::= Number | Variable | "(" Expr ")"
+         @ BuildFactorNode;
 
 // Generate lexer rules
 @lexer
-Identifier ::= [a-zA-Z][a-zA-Z0-9_]*;
-StringLiteral ::= "'" [^']* "'";
-NumberLiteral ::= [0-9]+ ("." [0-9]+)?;
+Number ::= [0-9]+ ("." [0-9]+)?;
+Variable ::= [a-zA-Z][a-zA-Z0-9_]*;
+Whitespace ::= [ \t\n\r]+ @Skip;
 ```
 
 ## Implementation Components
 
-The implementation consists of several key components:
+### 1. Parser
+- Process grammar specifications into AST
+- Handle rule definitions and production alternatives
+- Support lexer rule definitions
+- Parse semantic actions
+- Generate meaningful error messages for syntax issues
+- Support comments and basic error recovery
 
-1. **Parser Generator**: Converts grammar specification to parser code
-   - Implements LL, LR, LALR, or PEG parsing algorithms
-   - Generates lexical analyzer for tokens
+### 2. Grammar Analyzer & Parser Generator
+- Analyze grammar for conflicts and ambiguities
+- Generate recursive descent parser code or parser tables
+- Implement lexical analyzer generation
+- Support semantic action integration
+- Provide FIRST and FOLLOW set calculation
+- Generate straightforward parser code in Haskell
 
-2. **Parse Tree Builder**: Constructs syntax tree
-   - Creates nodes for grammar rules
-   - Associates semantic actions with nodes
-
-3. **Semantic Analyzer**: Processes parse tree
-   - Executes semantic actions
-   - Builds abstract syntax tree (AST)
-
-4. **Symbol Table Manager**: Handles identifiers
-   - Tracks scope and bindings
-   - Resolves references
-
-5. **Error Handler**: Reports syntax errors
-   - Provides meaningful error messages
-   - Implements error recovery strategies
-
-6. **Code Generator**: Produces parser implementation
-   - Generates code in target language (e.g., Haskell)
-   - Optimizes for performance
-
-### Execution Model
-
-The grammar-based parsing system works in several phases:
-1. Parse the grammar definition
-2. Analyze the grammar for conflicts and ambiguities
-3. Generate parser tables or recursive descent functions
-4. Generate lexical analyzer code
-5. Compile the resulting parser into executable code
-
-During parsing of target input:
-1. The lexer tokenizes the input
-2. The parser builds a parse tree according to grammar rules
-3. Semantic actions are executed at appropriate points
-4. The resulting data structure (often an AST) is returned
+### 3. Test Suite
+- **Unit Tests**:
+  - Parser correctness for grammar specifications
+  - Parser generation for simple grammars
+  - Action integration in generated parsers
+  
+- **Property-Based Testing**:
+  - Generate random valid grammars
+  - Test parser generator correctness
+  - Validate recursive descent generation

@@ -1,19 +1,14 @@
 # MiniComm: A Minimal Concurrent Language
 
 ## Project Overview
+MiniComm is a minimal language for expressing concurrent programs with a focus on message passing. The language provides just the essential primitives needed for concurrent computation while maintaining mathematical clarity and simplicity.
 
-MiniComm is a minimal language for expressing concurrent programs with a focus on message passing. The language provides just the essential primitives needed for concurrent computation while maintaining mathematical clarity.
+## Key Goals
+1. **Parser Implementation**: Convert MiniComm programs into an AST
+2. **Interpreter & Channel Manager**: Execute concurrent processes with proper channel synchronization
+3. **Test Suite**: Ensure correctness through unit and property-based testing
 
-### Key Features
-
-- **Processes**: Simple concurrent execution units
-- **Channels**: Typed communication channels between processes
-- **Message Passing**: Synchronous communication primitives
-- **Basic Arithmetic**: Essential integer operations
-
-## Language Syntax
-
-### AST Definition
+## Simplified Syntax Definition
 
 ```haskell
 -- A Program is a collection of process definitions and a main process
@@ -51,8 +46,7 @@ data Process
   deriving (Show, Eq)
 ```
 
-### Example Program: Producer-Consumer
-
+## Example Program
 ```
 -- Define producer process
 def Producer(out, count, value) =
@@ -75,18 +69,35 @@ new channel in
 ( Producer(channel, 0, 1) | Consumer(channel) )
 ```
 
-## Implementation
+## Implementation Components
 
-The implementation consists of:
+### 1. Parser
+- Process MiniComm program text into AST
+- Handle process definitions and expressions
+- Support channel declaration and operations
+- Generate meaningful error messages for syntax issues
+- Support comments and basic error recovery
+- Parse process composition and invocation
 
-1. **Lexer & Parser**: Converts text to AST
-2. **Type Checker**: Basic type checking for expressions and channels
-3. **Interpreter**: Executes processes with channel synchronization
-4. **Scheduler**: Basic round-robin scheduler for processes
-5. **Channel Manager**: Handles synchronization between processes
+### 2. Interpreter & Channel Manager
+- Implement concurrent execution engine for processes
+- Manage channel creation and synchronization
+- Handle rendezvous-style message passing
+- Implement deterministic process scheduling
+- Support process recursion through calls
+- Manage variable bindings and environments
+- Provide execution tracing and debugging info
 
-### Execution Model
-
-- Processes execute concurrently
-- Channel operations are synchronous (sender and receiver must rendezvous)
-- Deterministic scheduling for reproducible execution
+### 3. Test Suite
+- **Unit Tests**:
+  - Parser correctness for various inputs
+  - Expression evaluation
+  - Channel operations (send/receive)
+  - Process creation and invocation
+  - Process termination conditions
+  
+- **Property-Based Testing**:
+  - Generate random valid programs
+  - Verify message passing correctness
+  - Test synchronization properties
+  - Test recursive process behavior
