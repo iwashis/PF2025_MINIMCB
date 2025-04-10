@@ -38,6 +38,7 @@ library
       Tutorials03
       Tutorials04
       Tutorials05
+      Tutorials06
   other-modules:
       Paths_Basics
   autogen-modules:

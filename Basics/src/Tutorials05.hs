@@ -1,4 +1,10 @@
 module Tutorials05 where
+
+import Control.Monad.Writer (Writer,tell)
+import Data.Monoid (Sum(..))
+import Lecture05
+import Lecture07
+
 --
 -- 1. **Podstawy Monady Maybe**  
 --
@@ -52,7 +58,22 @@ knightPaths n (x,y) (a,b) = do
 --    Przykładowo, dla listy `[1, 2, 3, 4]` wynikiem powinno być `[1, 3, 6, 10]`. Zaimplementuj tę funkcję 
 --    używając monady State, korzystając z operacji `get`, `put` i funkcji `runState` lub `evalState`.
 
+type Counter = State Int 
+-- a -> Counter b 
+-- a -> Int -> (b, Int)
+-- (a,Int) -> (b,Int)
 
+runningSum :: [Int] -> Counter [Int]
+runningSum [] = pure []
+runningSum (x:xs) = do 
+  s <- get 
+  let s' = x + s
+  put s'
+  ys <- runningSum xs
+  pure $ s':ys
+
+
+  
 --
 -- 4. **Implementacja własnej monady**  
 --
@@ -64,9 +85,23 @@ knightPaths n (x,y) (a,b) = do
 --    Następnie użyj tej monady do zaimplementowania funkcji `factorial :: Int -> Logger Int`, 
 --    która oblicza silnię i loguje każdy krok obliczeń.
 --
--- 6. **Monada Writer do akumulacji wyników**  
+-- 5. **Monada Writer do akumulacji wyników**  
 --
---    Zaimplementuj funkcję `countNodes :: Tree a -> Writer (Sum Int) Int`, która liczy węzły w drzewie binarnym, 
---    używając monady Writer do akumulacji sumy. Typ drzewa zdefiniuj jako 
+--    Zaimplementuj funkcję `countNodes :: Tree a -> Writer (Sum Int) Int`, która liczy liczbę węzłów 
+--    w drzewie binarnym, używając monady Writer do akumulacji sumy. Typ drzewa zdefiniuj jako 
 --    `data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)` oraz do rozwiazania uzyj funkcji `tell`. 
 --
+data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)
+countNodes :: Tree a -> Writer (Sum Int) Int 
+countNodes Empty = pure 0  
+countNodes (Leaf a) = do 
+  tell (Sum 1)
+  pure 1
+countNodes (Node a left right) = do 
+  tell (Sum 1)
+  countNodes left 
+  countNodes right
+  pure 1
+
+
+exampleTree = Node 3 (Leaf 5) (Leaf 6) 

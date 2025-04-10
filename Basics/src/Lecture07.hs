@@ -1,4 +1,4 @@
-module Lecture07 where 
+module Lecture07 (get, put) where 
 
 
 -- Celem tego wykladu jest kontynuacja wykladu Lecture05, gdzie wprowadzono monade State s
