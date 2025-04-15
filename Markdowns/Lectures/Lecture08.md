@@ -183,7 +183,7 @@ exprBrackets = do
 factor :: Parser Expr
 factor = exprInt <|> exprBrackets
 
--- Parser dla terminu (czynnik lub iloczyn czynników)
+-- Parser dla termu (czynnik lub iloczyn czynników)
 term :: Parser Expr
 term = do
   f <- factor
