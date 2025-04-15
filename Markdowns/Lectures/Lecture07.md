@@ -61,7 +61,7 @@ writeFile :: FilePath -> String -> IO ()
 
 ## Przykład 1: Prosty Program IO
 
-Przykładowy program wykorzystujący monadę IO do interakcji z użytkownikiem:
+Przykładowe programy wykorzystujący monadę IO do interakcji z użytkownikiem:
 
 ```haskell
 greet :: IO ()
@@ -70,14 +70,29 @@ greet = do
   name <- getLine
   putStrLn $ "Cześć, " ++ name ++ "!"
 
-main :: IO ()
-main = do
+readNumbers :: IO ()
+readNumbers = do
   greet
   putStrLn "Podaj dwie liczby do dodania:"
   a <- readLn :: IO Int
   b <- readLn :: IO Int
   let sum = a + b
   putStrLn $ "Suma: " ++ show sum
+
+-- program wczytujacy plik i wyswietlajacy go 
+readAndDisplayFile :: IO ()
+readAndDisplayFile = do 
+  putStrLn "Podaj nazwę pliku do przeczytania"
+  fileName <- getLine
+  -- try :: Exception e => IO a -> IO (Either e a)
+  tryFileContent <- try (readFile fileName) :: IO (Either IOError String)
+  case tryFileContent of 
+    Right fileContent -> do 
+      putStrLn "Plik dobrze odczytany. Oto jego zawartosc"
+      putStr fileContent 
+    Left errorMsg -> do 
+      putStrLn "Nastapil blad czytania pliku"
+      putStr $ show errorMsg
 ```
 
 ## Transformatory Monad
