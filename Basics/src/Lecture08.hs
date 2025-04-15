@@ -4,7 +4,6 @@ module Lecture08 where
 import Control.Monad.Trans
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Except
-import System.IO
 import Control.Exception
 -----------------------------------------------------------------------------
 -- MONADA IO
