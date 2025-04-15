@@ -33,6 +33,7 @@ library
       Lecture06
       Lecture07
       Lecture08
+      Lecture09
       Lib
       Tutorials01
       Tutorials02
@@ -50,6 +51,7 @@ library
   build-depends:
       base >=4.7 && <5
     , mtl
+    , transformers
   default-language: Haskell2010
 
 executable Basics-exe
@@ -65,6 +67,7 @@ executable Basics-exe
       Basics
     , base >=4.7 && <5
     , mtl
+    , transformers
   default-language: Haskell2010
 
 test-suite Basics-test
@@ -81,4 +84,5 @@ test-suite Basics-test
       Basics
     , base >=4.7 && <5
     , mtl
+    , transformers
   default-language: Haskell2010

@@ -1,9 +1,11 @@
+{-# LANGUAGE RecordWildCards #-}
 module Lecture08 where
 
 import Control.Monad.Trans
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Except
-
+import System.IO
+import Control.Exception
 -----------------------------------------------------------------------------
 -- MONADA IO
 -----------------------------------------------------------------------------
@@ -14,6 +16,14 @@ w sposób zgodny z paradygmatem czystego programowania funkcyjnego.
 
 Koncepcyjnie można rozumieć IO jako:
 newtype IO a = IO { runIO :: World -> (World, a) }
+
+f :: a -> IO b
+
+a   ───┐          ┌─── b
+       │          │
+       └──→[  f ]─┘
+       │          │
+World ─┘          └─── World
 -}
 
 -- Podstawowe operacje IO:
@@ -24,11 +34,46 @@ newtype IO a = IO { runIO :: World -> (World, a) }
 
 -- Przykład 1: Prosty program IO
 greet :: IO ()
-greet = undefined
+greet = do 
+  putStrLn "Witajcie!" 
+  putStrLn "Miło Was widzieć"
 
-main :: IO ()
-main = undefined
 
+readName :: IO ()
+readName = do
+  greet
+  putStrLn "Podaj imię"
+  -- x <- readLn :: IO String 
+  x <- getLine
+  putStrLn $ "Twoje imię to: " ++ x
+
+
+
+-- program zczytujacy dwie liczby i dodajacy wyniki do siebie
+readNumbers :: IO ()
+readNumbers = do 
+  greet 
+  putStrLn "Podaj dwie liczby całkowite"
+  x <- readLn :: IO Int  
+  y <- readLn :: IO Int 
+  let sum = x + y 
+  putStrLn $ "Suma to " ++ show sum
+
+-- program wczytujacy plik i wyswietlajacy go 
+readAndDisplayFile :: IO ()
+readAndDisplayFile = do 
+  putStrLn "Podaj nazwę pliku do przeczytania"
+  fileName <- getLine
+  -- try :: Exception e => IO a -> IO (Either e a)
+  tryFileContent <- try (readFile fileName) :: IO (Either IOError String)
+  case tryFileContent of 
+    Right fileContent -> do 
+      putStrLn "Plik dobrze odczytany. Oto jego zawartosc"
+      putStr fileContent 
+    Left errorMsg -> do 
+      putStrLn "Nastapil blad czytania pliku"
+      putStr $ show errorMsg
+ 
 -----------------------------------------------------------------------------
 -- TRANSFORMATORY MONAD
 -----------------------------------------------------------------------------
@@ -75,25 +120,56 @@ data AppState = AppState {
 -- Typ reprezentujący obliczenia w naszej aplikacji
 type AppM a = StateT AppState IO a
 
--- Wyświetla aktualny stan
-displayState :: AppM ()
-displayState = undefined
+-- f :: AppM a 
+-- f' :: AppState -> IO (AppState,a)
+--
+--                          ┌─── a
 
--- Zwiększa wynik
-increaseScore :: Int -> AppM ()
-increaseScore = undefined
-
--- Pyta użytkownika o imię i aktualizuje stan
-askForName :: AppM ()
-askForName = undefined
+-- AppState   ───┐          ┌─── AppState
+--               │          │
+--               └──→[  f ]─┘
+--               │          │
+-- World   -----─┘          └─── World
+--
 
 -- Inicjalizacja stanu i uruchomienie aplikacji
 initialState :: AppState
 initialState = AppState { userName = "", score = 0, gameOver = False }
 
+
+-- Wyświetla aktualny stan
+displayState :: AppM ()
+displayState = do 
+  x <- get 
+  lift $ putStrLn "Stan gry to:"
+  lift $ putStr $ show x
+
+-- Zwiększa wynik
+increaseScoreBy :: Int -> AppM ()
+increaseScoreBy n = do 
+  AppState {..} <- get 
+  put $ AppState {score = score + n, ..}
+
+
+-- Pyta użytkownika o imię i aktualizuje stan
+askForName :: AppM ()
+askForName = do 
+  lift $ putStrLn "Napisz swoje imie"
+  x <- lift getLine 
+  AppState {..} <- get 
+  put $ AppState {userName = x, ..}
+
+
+
 -- Przykładowe użycie
 runApp :: IO ()
-runApp = undefined
+runApp = evalStateT (do 
+    askForName
+    increaseScoreBy 10 
+    increaseScoreBy 20
+    displayState
+  ) initialState
+
 
 -----------------------------------------------------------------------------
 -- PRZYKŁAD 3: ŁĄCZENIE WIELU TRANSFORMATORÓW
