@@ -47,4 +47,33 @@ exampleRandomList = evalState (randomList 12 10 100) 152
 --    Napisz program `calculator :: IO ()`, który wczytuje od użytkownika dwie liczby oraz operację (dodawanie, odejmowanie, mnożenie, dzielenie) i wypisuje wynik. 
 --    Program powinien obsługiwać błędy (np. dzielenie przez zero) i pytać użytkownika, czy chce kontynuować obliczenia. 
 --    Użyj funkcji `getLine`, `readLn` oraz `putStrLn` do interakcji z użytkownikiem.
-
+--
+-- 4. **Transformator ReaderT do konfiguracji aplikacji**
+--    Zdefiniuj typ `Config`, który zawiera parametry aplikacji (np. `verbose :: Bool`, `maxRetries :: Int`). Następnie zaimplementuj funkcję `processItem :: String -> ReaderT Config IO Bool`, która przetwarza element i raportuje wynik. Funkcja powinna sprawdzać wartość `verbose` w konfiguracji i wypisywać dodatkowe informacje, gdy jest ustawiona na `True`. Na koniec napisz funkcję `processItems :: [String] -> ReaderT Config IO [Bool]`, która przetwarza listę elementów i zwraca listę wyników.
+--
+-- 5. **Obsługa błędów z ExceptT**
+--    Napisz funkcję `readFileWithExcept :: FilePath -> ExceptT String IO String`, która próbuje odczytać zawartość pliku i obsługuje potencjalne błędy używając transformatora ExceptT. Następnie zaimplementuj funkcję `processFiles :: [FilePath] -> ExceptT String IO [String]`, która przetwarza listę plików, kontynuując nawet jeśli niektóre pliki nie mogą zostać odczytane. Dodaj funkcję pomocniczą `logError :: String -> ExceptT String IO ()`, która zapisuje błędy do pliku logów.
+--
+-- 6. **Łączenie transformatorów StateT i IO**
+--    Zaimplementuj prosty symulator bankomatu używając transformatora StateT. Zdefiniuj typ `BankState` zawierający saldo konta. Napisz funkcje:
+--    * `withdraw :: Int -> StateT BankState IO Bool` - próbuje wypłacić określoną kwotę
+--    * `deposit :: Int -> StateT BankState IO ()` - wpłaca określoną kwotę
+--    * `checkBalance :: StateT BankState IO Int` - sprawdza aktualne saldo
+--    * `atmSession :: StateT BankState IO ()` - przeprowadza interaktywną sesję z użytkownikiem
+--    
+--    Każda operacja powinna wypisywać odpowiednie komunikaty na ekranie oraz aktualizować stan konta.
+--
+-- 7. **Implementacja stosu transformatorów**
+--    Zdefiniuj typ `AppM a = ReaderT Config (StateT AppState (ExceptT AppError IO)) a`, gdzie:
+--    * `Config` zawiera parametry konfiguracyjne (np. `maxAttempts :: Int`)
+--    * `AppState` zawiera stan aplikacji (np. `counter :: Int`, `lastOperation :: String`)
+--    * `AppError` to typ reprezentujący możliwe błędy (np. `NetworkError String`, `ValidationError String`)
+--    
+--    Następnie zaimplementuj funkcje pomocnicze:
+--    * `getConfig :: AppM Config` - pobiera konfigurację
+--    * `getState :: AppM AppState` - pobiera stan
+--    * `modifyState :: (AppState -> AppState) -> AppM ()` - modyfikuje stan
+--    * `throwAppError :: AppError -> AppM a` - zgłasza błąd
+--    * `runApp :: Config -> AppState -> AppM a -> IO (Either AppError (a, AppState))` - uruchamia obliczenie
+--    
+--    Na koniec zaimplementuj przykładową funkcję biznesową `processTransaction :: Transaction -> AppM Result`, która korzysta z powyższych funkcji pomocniczych.
