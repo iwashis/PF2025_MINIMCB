@@ -185,8 +185,8 @@ data GameState = GameState {
 } deriving (Show)
 
 -- Stos monadyczny łączący IO, State i Either
-type GameM a = ExceptT AppError (StateT GameState IO) a
-
+type GameM a = ExceptT AppError (StateT GameState IO) a -- ExceptT s m a = m (s + a) = GameState -> IO(GameState, s + a)
+ -- gdzie: m b = GameState -> IO (GameState, b)
 -- Funkcje pomocnicze
 throwError :: AppError -> GameM a
 throwError = undefined
