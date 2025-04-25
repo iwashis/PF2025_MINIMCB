@@ -38,8 +38,7 @@ module TreasureHunters where
 import Control.Monad.State
 import Control.Monad.IO.Class
 import System.IO
-import Data.List (elemIndex)
-
+import Data.List 
 -- Typ reprezentujący lokację na planszy
 data LocationType = 
     Empty           -- Zwykłe pole
