@@ -1,15 +1,7 @@
 module Tutorials06 where 
 
-import Control.Monad.State (State(..), get, put,modify, evalState, evalStateT, StateT(..))
+import Control.Monad.State (State(..), get, put,modify, evalState, StateT(..))
 import Control.Monad.Reader
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Except
-import Control.Monad.IO.Class
-import System.IO.Error
-import System.IO
-import Control.Exception
-import Data.Monoid (Sum(..))
-import Data.Maybe (fromMaybe)
 
 
 --
