@@ -1,179 +1,161 @@
-{-# LANGUAGE FlexibleInstances #-}
 module Lecture09 where
 
+import Control.Monad.State
+import Control.Monad (mzero)
 import Control.Applicative hiding (many)
-import Control.Applicative ((<|>))
-import Data.List
-import Control.Monad.Trans
-import Control.Monad.State (StateT, runStateT)
-import Control.Monad.Trans.State.Lazy (StateT(StateT))
-import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE, catchE)
 import Data.Char
 
--- Data type representing arithmetic expressions
-data Expr = Constant Int | Plus Expr Expr | Times Expr Expr
-  deriving Show
 
--- Error type to represent different kinds of parsing errors
-data ParseError = 
-    UnexpectedChar Char String -- Unexpected character with context
-  | EndOfInput String          -- Unexpected end of input with context
-  | GeneralError String        -- Generic error message
-  deriving Show
+-- an expression is: 
+-- algexpr = integer | variable x | algexpr + algexpr | algexpr * algexpr
+-- expr =    x := algebrexpr | algebr
+data AlgExpr = Const Int | Var String | Add AlgExpr  AlgExpr | Mul AlgExpr AlgExpr 
 
--- Parser type - a monad transformer stack that combines:
--- 1. ExceptT for error handling
--- 2. StateT for managing the input string state 
--- 3. [] for non-determinism (multiple possible parses)
-type Parser a = ExceptT ParseError (StateT String []) a
--- Parser a == String -> [(String,Either ParseError a)]
+data Expr = Algebraic AlgExpr | Assignment String AlgExpr
 
--- Runs a parser on a string input and returns a list of possible results with remaining input
--- or parse errors
-runParser :: Parser a -> String -> [(Either ParseError a, String)]
-runParser = undefined
+data Program = Program [Expr]
 
--- Helper function to get a more user-friendly result
-parseWithErrors :: Parser a -> String -> Either ParseError [(a, String)]
-parseWithErrors = undefined
+exampleProgram :: String 
+exampleProgram =  "x := 5; y:= x * (x + (5*9));"
 
--- A parser that always fails with a custom error message
-nothing :: String -> Parser a
-nothing = undefined
+-- String -> Maybe Program 
+-- String -> (String, a)
+-- "4 * 50" ---> ("* 50", 4) ---> (" 50", *, pamietajac o 4) ->  ("", 50 (*, pamietam o 4)) -> Mul 50 4
+-- String -> [(String, a)]
+--
+-- "40 * 4" -> []
+-- Parser type using StateT with list as the underlying monad for non-determinism
+type Parser a = StateT String [] a -- StateT (String -> [(String, a)])
 
--- Basic parser that consumes the first character of the input string
--- Now with error handling for empty input
-item :: Parser Char
-item = undefined
+runParser :: Parser a -> String -> [(a, String)]
+runParser parser string = runStateT parser string
 
--- Creates a parser that succeeds only if the next character satisfies a given predicate
--- Otherwise fails with an error message
-sat :: (Char -> Bool) -> String -> Parser Char
-sat = undefined
+nothing :: Parser a 
+nothing = StateT $ const [] 
 
--- Parser that matches any digit character (0-9)
-digit :: Parser Char
-digit = undefined
+-- Satisfy predicate
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy  f = StateT g 
+  where 
+    -- g :: String -> [(a, String)]
+    g "" = []
+    g (x:xs) = [(x,xs) | f x] 
 
--- Parser that matches any non-zero digit (1-9)
-positiveDigit :: Parser Char
-positiveDigit = undefined
-
--- Parser that matches any alphabetic character
-alpha :: Parser Char
-alpha = undefined
-
--- Parser that matches either an alphabetic character or a digit
-alphaDigit :: Parser Char
-alphaDigit = undefined
-
--- Creates a parser that matches a specific character
+-- Parse a specific character
 char :: Char -> Parser Char
-char = undefined
+char c = satisfy ( == c) 
 
--- Parser that matches an open parenthesis '('
-openBracket :: Parser Char
-openBracket = undefined
+-- Parse a string
+string :: String -> Parser String
+string "" =  StateT $ \napis -> [("", napis)] -- to samo co pure "" 
+string (x:xs) = do 
+  ch <- char x
+  chrs <- string xs 
+  pure (ch:chrs)
+  
+many :: Parser a -> Parser [a] 
+many parser = (do 
+  x <- parser 
+  xs <- many parser 
+  pure $ x:xs) <|> pure []
 
--- Parser that matches a close parenthesis ')'
-closeBracket :: Parser Char
-closeBracket = undefined
-
--- Parser that matches a minus sign '-'
-minus :: Parser Char
-minus = undefined
-
--- Parser that matches a space character ' '
-space :: Parser Char
-space = undefined
-
--- Parser choice operator with error handling
--- Returns the first successful parse, or the most relevant error
-(<|?>) :: Parser a -> Parser a -> Parser a
-(<|?>) = undefined
-
--- Applies a parser zero or more times, collecting results in a list
-many :: Parser a -> Parser [a]
-many = undefined
-
--- Applies a parser one or more times, collecting results in a list
 many1 :: Parser a -> Parser [a]
-many1 = undefined
+many1 parser = do 
+  x <- parser 
+  xs <- many parser 
+  pure (x:xs)
 
--- Converts a string representation of a number to an integer
-evaluate :: String -> Int
-evaluate = undefined
+p = do 
+  xs <- many1 (satisfy isNumber)
+  _  <- char '*'
+  pure xs 
+-- Parse whitespace
+whitespace :: Parser ()
+whitespace = do 
+  _ <- many (char ' ') 
+  pure ()
 
--- Parses a positive integer (starting with a non-zero digit)
-positiveInt :: Parser Int
-positiveInt = undefined
+-- Parse a token (with surrounding whitespace)
+token :: Parser a -> Parser a 
+token parser = do
+  _ <- whitespace 
+  x <- parser 
+  _ <- whitespace 
+  pure x
 
--- Parses a negative integer (a minus sign followed by a positive integer)
-negativeInt :: Parser Int
-negativeInt = undefined
+-- Parse a specific token string
+symbol :: String -> Parser String
+symbol name = token (string name) 
 
--- Parses a zero integer (one or more '0' characters)
-zeroInt :: Parser Int
-zeroInt = undefined
+-- Parse a digit
+digit :: Parser Char
+digit = satisfy isDigit 
 
--- Parses any integer (positive, zero, or negative)
-int :: Parser Int
-int = undefined
+-- Parse an integer
+positiveInteger :: Parser Int  
+positiveInteger =  do 
+  string <- many1 digit
+  pure $ read string
 
--- Parses a sequence of space characters
-spaces :: Parser String
-spaces = undefined
+integer :: Parser Int 
+integer = positiveInteger <|> (do 
+  char '-'
+  _ <- whitespace
+  int <- positiveInteger
+  pure $ -int )
 
--- Parses a semicolon character ';'
-end :: Parser Char
-end = undefined
+-- Parse an identifier (variable name)
+identifier :: Parser String
+identifier = undefined
 
--- Evaluates an arithmetic expression to an integer
-eval :: Expr -> Int
-eval = undefined
+-- Parse parentheses
+parens :: Parser a -> Parser a
+parens = undefined
 
--- Function to parse expression with error handling and optional whitespace
-token :: Parser a -> Parser a
-token = undefined
-
--- Parses an integer expression (a constant)
-exprInt :: Parser Expr
-exprInt = undefined
-
--- Parses a parenthesized expression
-exprParen :: Parser Expr
-exprParen = undefined
-
--- Forward declaration for expressions
+-- Parse an expression
 expr :: Parser Expr
 expr = undefined
 
--- Parses a term (factor with possible multiplications)
-term :: Parser Expr
-term = undefined
+-- Parse an assignment expression
+assignExpr :: Parser Expr
+assignExpr = undefined
 
--- Parses a factor (integer or parenthesized expression)
-factor :: Parser Expr
-factor = undefined
+-- Parse a print expression
+printExpr :: Parser Expr
+printExpr = undefined
 
--- Parses an addition operator
-addOp :: Parser (Expr -> Expr -> Expr)
-addOp = undefined
+-- Parse an addition expression
+addExpr :: Parser Expr
+addExpr = undefined
 
--- Parses a multiplication operator
-mulOp :: Parser (Expr -> Expr -> Expr)
-mulOp = undefined
+-- Parse a multiplication expression
+mulExpr :: Parser Expr
+mulExpr = undefined
 
--- Helper for parsing left-associative binary operators
-chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a
-chainl1 = undefined
+-- Parse a factor expression (constant, variable, or parenthesized expression)
+factorExpr :: Parser Expr
+factorExpr = undefined
 
--- Main entry point for parsing an arithmetic expression
-parseExpr :: String -> Either ParseError Expr
+-- Parse a constant expression
+constExpr :: Parser Expr
+constExpr = undefined
+
+-- Parse a variable expression
+varExpr :: Parser Expr
+varExpr = undefined
+
+-- Parse a program (a list of expressions)
+program :: Parser Program
+program = undefined
+
+-- Optional parser
+option :: a -> Parser a -> Parser a
+option = undefined
+
+-- Run the parser on an input string
+parseExpr :: String -> Maybe Expr
 parseExpr = undefined
 
--- Example usage:
--- parseExpr "3 + 4 * 2"
--- parseExpr "(3 + 4) * 2"
--- parseExpr "3 + (4 * 2"  -- Will generate an error about missing closing parenthesis
-
+-- Run the program parser on an input string
+parseProgram :: String -> Maybe Program
+parseProgram = undefined
