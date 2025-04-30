@@ -177,10 +177,6 @@ varExpr = undefined
 program :: Parser Program
 program = undefined
 
--- Optional parser
-option :: a -> Parser a -> Parser a
-option = undefined
-
 -- Run the parser on an input string
 parseExpr :: String -> Maybe Expr
 parseExpr = undefined
