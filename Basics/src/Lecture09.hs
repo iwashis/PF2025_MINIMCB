@@ -1,81 +1,108 @@
 module Lecture09 where
-
 import Control.Monad.State
-import Control.Monad (mzero)
 import Control.Applicative hiding (many)
 import Data.Char
 
+-- Nasz zabawkowy język definiuje wyrażenia na dwóch poziomach:
+-- Wyrażenia algebraiczne mogą być liczbami całkowitymi, zmiennymi lub kombinacjami za pomocą operatorów.
+-- Wyrażenia programu obejmują wyrażenia algebraiczne, przypisania i instrukcje drukowania.
+data AlgExpr = Const Int | Var String | Add AlgExpr AlgExpr | Mul AlgExpr AlgExpr 
+data Expr = Algebraic AlgExpr | Assignment String AlgExpr | Print AlgExpr
+newtype Program = Program [Expr]
 
--- an expression is: 
--- algexpr = integer | variable x | algexpr + algexpr | algexpr * algexpr
--- expr =    x := algebrexpr | algebr
-data AlgExpr = Const Int | Var String | Add AlgExpr  AlgExpr | Mul AlgExpr AlgExpr 
-
-data Expr = Algebraic AlgExpr | Assignment String AlgExpr
-
-data Program = Program [Expr]
-
+-- Przykładowy program, który przypisuje 5 do x, oblicza wyrażenie z x, przypisuje wynik do y, a następnie drukuje y.
 exampleProgram :: String 
-exampleProgram =  "x := 5; y:= x * (x + (5*9));"
+exampleProgram =  "let x := 5; let y:= x * (x + (5*9)); print y;"
 
--- String -> Maybe Program 
--- String -> (String, a)
--- "4 * 50" ---> ("* 50", 4) ---> (" 50", *, pamietajac o 4) ->  ("", 50 (*, pamietam o 4)) -> Mul 50 4
--- String -> [(String, a)]
+-- Parsowanie przekształca tekst w ustrukturyzowane dane. Programowanie funkcyjne oferuje bardziej eleganckie podejście
+-- za pomocą kombinatorów parserów.
 --
--- "40 * 4" -> []
--- Parser type using StateT with list as the underlying monad for non-determinism
-type Parser a = StateT String [] a -- StateT (String -> [(String, a)])
+-- Parser można postrzegać jako funkcję, która konsumuje dane wejściowe i generuje zarówno wynik, jak i pozostałe dane wejściowe.
+-- Aby obsłużyć niejednoznaczność i niepowodzenia, używamy listy możliwych parsowań zamiast tylko jednego wyniku.
+-- Pusta lista reprezentuje niepowodzenie, podczas gdy wiele wyników reprezentuje niejednoznaczne parsowania.
 
+-- Łączymy StateT do śledzenia danych wejściowych z monadą listy do obsługi wielu możliwości parsowania.
+type Parser a = StateT String [] a
+
+-- Koncepcyjny diagram sznurkowy dla Parser a:
+--                                  ┌─── a₁
+--                                  │
+--                                  ├─── String₁
+--                                  │
+--    a ───┐                        │
+--         │                        ├─── a₂
+--         │                        │
+--         └──→[     Parser     ]───┼─── String₂
+--         │                        │
+-- String ─┘                        ├─── a₃
+--                                  │
+--                                  ├─── String₃
+--                                  │
+--                                  └─── ... (więcej możliwych wyników)
+--
+--
+-- Ta funkcja uruchamia parser na ciągu wejściowym, zwracając wszystkie możliwe wyniki parsowania z pozostałymi danymi wejściowymi.
 runParser :: Parser a -> String -> [(a, String)]
-runParser parser string = runStateT parser string
+runParser = runStateT 
 
+-- Parser 'nothing' zawsze kończy się niepowodzeniem, zwracając pustą listę niezależnie od danych wejściowych.
 nothing :: Parser a 
 nothing = StateT $ const [] 
 
--- Satisfy predicate
+-- Podstawowy parser 'satisfy' konsumuje znak, jeśli spełnia warunek predykatu.
+-- Kończy się niepowodzeniem na pustym wejściu lub jeśli pierwszy znak nie przejdzie testu.
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy  f = StateT g 
+satisfy f = StateT g 
   where 
-    -- g :: String -> [(a, String)]
     g "" = []
     g (x:xs) = [(x,xs) | f x] 
 
--- Parse a specific character
+-- Parser 'char' rozpoznaje określony znak, używając równości jako predykatu.
 char :: Char -> Parser Char
-char c = satisfy ( == c) 
+char c = satisfy (== c) 
 
--- Parse a string
+-- Parser 'string' rozpoznaje ciąg znaków. Dla pustego celu natychmiast kończy się sukcesem.
+-- Dla niepustych celów dopasowuje pierwszy znak, a następnie rekurencyjnie dopasowuje resztę.
 string :: String -> Parser String
-string "" =  StateT $ \napis -> [("", napis)] -- to samo co pure "" 
+string "" = StateT $ \napis -> [("", napis)] -- to samo co pure ""
 string (x:xs) = do 
   ch <- char x
   chrs <- string xs 
   pure (ch:chrs)
   
+-- Parser 'many' stosuje inny parser wielokrotnie, aż do niepowodzenia, zbierając wszystkie wyniki.
+-- Używa <|> do wyboru między: 1) parsowaniem co najmniej jednego elementu lub 2) zwróceniem pustej listy.
+--
+-- Operator wyboru alternatywnego: <|>
+--
+-- Operator <|> jest fundamentalny dla kombinatorów parserów, reprezentując wybór między strategiami parsowania.
+-- Wywodzi się z wczesnych funkcyjnych bibliotek parserów i jest teraz częścią typeklasy Alternative w Haskellu,
+-- która abstrahuje pojęcie wyboru w różnych kontekstach.
+--
+-- W naszym przypadku operator <|> jest zdefiniowany dla monady listowej a -> [a] poprzez operator konkatenacji.
+-- Następnie, dla każdej monady m, dla której mamy zdefiniowane <|>, możemy łatwo wprowadzić definicję dla monady StateT s m
+-- Proste cwiczenie: napisac explicite implementacje <|> dla monady Parser a.
 many :: Parser a -> Parser [a] 
 many parser = (do 
   x <- parser 
   xs <- many parser 
-  pure $ x:xs) <|> pure []
+  pure (x:xs)) <|> pure []
 
+-- Parser 'many1' wymaga co najmniej jednego udanego parsowania, a następnie zero lub więcej dodatkowych parsowań.
 many1 :: Parser a -> Parser [a]
 many1 parser = do 
   x <- parser 
   xs <- many parser 
   pure (x:xs)
 
-p = do 
-  xs <- many1 (satisfy isNumber)
-  _  <- char '*'
-  pure xs 
--- Parse whitespace
+-- Parser 'whitespace' konsumuje zero lub więcej spacji, umożliwiając elastyczne odstępy na wejściu.
 whitespace :: Parser ()
 whitespace = do 
   _ <- many (char ' ') 
   pure ()
 
--- Parse a token (with surrounding whitespace)
+-- Parser 'token' obsługuje białe znaki przed i po innym parserze, upraszczając składnię, gdzie
+-- odstępy nie mają znaczenia.
 token :: Parser a -> Parser a 
 token parser = do
   _ <- whitespace 
@@ -83,26 +110,28 @@ token parser = do
   _ <- whitespace 
   pure x
 
--- Parse a specific token string
+-- Parser 'symbol' rozpoznaje określony ciąg z otaczającymi białymi znakami.
 symbol :: String -> Parser String
 symbol name = token (string name) 
 
--- Parse a digit
+-- Parser 'digit' rozpoznaje pojedynczy znak cyfry.
 digit :: Parser Char
 digit = satisfy isDigit 
 
--- Parse an integer
+-- Parser 'positiveInteger' konwertuje ciąg cyfr na wartość całkowitą.
 positiveInteger :: Parser Int  
 positiveInteger =  do 
-  string <- many1 digit
-  pure $ read string
+  s <- many1 digit
+  pure $ read s 
 
+-- Parser 'integer' obsługuje zarówno liczby dodatnie, jak i ujemne, demonstrując kompozycję parserów.
 integer :: Parser Int 
 integer = positiveInteger <|> (do 
-  char '-'
+  _ <- char '-'
   _ <- whitespace
   int <- positiveInteger
   pure $ -int )
+
 
 -- Parse an identifier (variable name)
 identifier :: Parser String
