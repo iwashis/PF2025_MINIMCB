@@ -6,14 +6,18 @@ import Data.Char
 -- Nasz zabawkowy język definiuje wyrażenia na dwóch poziomach:
 -- Wyrażenia algebraiczne mogą być liczbami całkowitymi, zmiennymi lub kombinacjami za pomocą operatorów.
 -- Wyrażenia programu obejmują wyrażenia algebraiczne, przypisania i instrukcje drukowania.
-data AlgExpr = Const Int | Var String | Add AlgExpr AlgExpr | Mul AlgExpr AlgExpr 
+data AlgExpr = Constant Int | Var String | Add AlgExpr AlgExpr | Mul AlgExpr AlgExpr 
+  deriving Show
 data Expr = Algebraic AlgExpr | Assignment String AlgExpr | Print AlgExpr
+  deriving Show 
 newtype Program = Program [Expr]
+  deriving Show
 
 -- Przykładowy program, który przypisuje 5 do x, oblicza wyrażenie z x, przypisuje wynik do y, a następnie drukuje y.
 exampleProgram :: String 
-exampleProgram =  "let x := 5; let y:= x * (x + (5*9)); print y;"
+exampleProgram =  "let x:= 5;let y:=(x*(x+(5*9)));print y;"
 
+keywords = ["let"]
 -- Parsowanie przekształca tekst w ustrukturyzowane dane. Programowanie funkcyjne oferuje bardziej eleganckie podejście
 -- za pomocą kombinatorów parserów.
 --
@@ -135,48 +139,95 @@ integer = positiveInteger <|> (do
 
 -- Parse an identifier (variable name)
 identifier :: Parser String
-identifier = undefined
+identifier = do
+  c <- satisfy isAsciiLower
+  cs <- pure [] <|> identifier 
+  let word = c:cs
+  if elem word keywords then pure []
+  else
+    pure $ word
+
+fake :: Parser String
+fake = do
+  c <- satisfy f 
+  cs <- pure [] <|> identifier 
+  pure $ c:cs
+  where 
+    f x = isAsciiLower x || x =='(' || x == ')'
+
 
 -- Parse parentheses
 parens :: Parser a -> Parser a
-parens = undefined
+parens parser = do 
+  _ <- char '('
+  x <- parser 
+  _ <- char ')'
+  pure x
 
--- Parse an expression
-expr :: Parser Expr
-expr = undefined
+-- 
+-- data AlgExpr = Const Int | Var String | Add AlgExpr AlgExpr | Mul AlgExpr AlgExpr 
+-- algExpr -234234 | 1234 | x | (algExpr + algExpr) | (Expr * Expr)
+addAlgExpr :: Parser AlgExpr 
+addAlgExpr = do 
+  x <- parens p 
+  pure x
+  where 
+    p = do 
+      e1 <- algExpr 
+      _ <- char '+'
+      e2 <- algExpr
+      pure $ Add e1 e2
+
+mulAlgExpr :: Parser AlgExpr 
+mulAlgExpr = do 
+  x <- parens p 
+  pure x
+  where 
+    p = do 
+      e1 <- algExpr 
+      _ <- char '*'
+      e2 <- algExpr
+      pure $ Mul e1 e2
+
+
+algExpr :: Parser AlgExpr
+algExpr = (Constant <$> integer) <|> (Var <$> identifier) <|> addAlgExpr <|> mulAlgExpr
+
 
 -- Parse an assignment expression
 assignExpr :: Parser Expr
-assignExpr = undefined
+assignExpr = do 
+  _ <- symbol "let "
+  var <- identifier
+  _ <- symbol ":="
+  e <- algExpr
+  pure $ Assignment var e
 
 -- Parse a print expression
 printExpr :: Parser Expr
-printExpr = undefined
+printExpr = do 
+  _ <- symbol "print "
+  e <- algExpr
+  pure $ Print e
 
--- Parse an addition expression
-addExpr :: Parser Expr
-addExpr = undefined
 
--- Parse a multiplication expression
-mulExpr :: Parser Expr
-mulExpr = undefined
-
--- Parse a factor expression (constant, variable, or parenthesized expression)
-factorExpr :: Parser Expr
-factorExpr = undefined
-
--- Parse a constant expression
-constExpr :: Parser Expr
-constExpr = undefined
-
--- Parse a variable expression
-varExpr :: Parser Expr
-varExpr = undefined
+-- Parse an expression
+expr :: Parser Expr
+expr = do 
+  exp <- Algebraic <$> algExpr <|> assignExpr <|> printExpr 
+  _ <- char ';'
+  pure exp
 
 -- Parse a program (a list of expressions)
-program :: Parser Program
-program = undefined
+expList :: Parser [Expr]
+expList = do 
+  e <- expr 
+  es <- pure [] <|> expList 
+  pure $ e:es
 
+
+-- parse :: String -> Program
+parse string = tail $ runParser expList string 
 -- Run the parser on an input string
 parseExpr :: String -> Maybe Expr
 parseExpr = undefined
