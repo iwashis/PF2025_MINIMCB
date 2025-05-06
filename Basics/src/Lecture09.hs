@@ -29,21 +29,19 @@ keywords = ["let"]
 type Parser a = StateT String [] a
 
 -- Koncepcyjny diagram sznurkowy dla Parser a:
---                                  ┌─── a₁
---                                  │
---                                  ├─── String₁
---                                  │
---    a ───┐                        │
---         │                        ├─── a₂
---         │                        │
---         └──→[     Parser     ]───┼─── String₂
---         │                        │
--- String ─┘                        ├─── a₃
---                                  │
---                                  ├─── String₃
---                                  │
---                                  └─── ... (więcej możliwych wyników)
---
+--                            ┌─── a₁
+--                            │
+--                            ├─── String₁
+--                            │
+--                            ├─── a₂
+--                            │
+--    String ───→[ Parser ]───┼─── String₂
+--                            │
+--                            ├─── a₃
+--                            │
+--                            ├─── String₃
+--                            │
+--                            └─── ... (więcej możliwych wyników)
 --
 -- Ta funkcja uruchamia parser na ciągu wejściowym, zwracając wszystkie możliwe wyniki parsowania z pozostałymi danymi wejściowymi.
 runParser :: Parser a -> String -> [(a, String)]
@@ -143,9 +141,8 @@ identifier = do
   c <- satisfy isAsciiLower
   cs <- pure [] <|> identifier 
   let word = c:cs
-  if elem word keywords then pure []
-  else
-    pure $ word
+  if word `elem` keywords then nothing 
+  else pure word
 
 fake :: Parser String
 fake = do
@@ -203,35 +200,41 @@ assignExpr = do
   e <- algExpr
   pure $ Assignment var e
 
--- Parse a print expression
+-- Parse a print expression/
 printExpr :: Parser Expr
 printExpr = do 
   _ <- symbol "print "
   e <- algExpr
   pure $ Print e
 
-
--- Parse an expression
+-- Parse a semicolon-terminated expression
 expr :: Parser Expr
 expr = do 
-  exp <- Algebraic <$> algExpr <|> assignExpr <|> printExpr 
-  _ <- char ';'
-  pure exp
+  e <- assignExpr <|> printExpr <|> (Algebraic <$> algExpr)
+  _ <- symbol ";" 
+  pure e
 
--- Parse a program (a list of expressions)
+-- Parse a list of expressions (zero or more)
 expList :: Parser [Expr]
-expList = do 
-  e <- expr 
-  es <- pure [] <|> expList 
-  pure $ e:es
+expList = many expr
 
+-- Parse the end of file/input
+eof :: Parser ()
+eof = StateT $ \input -> if null input then [((), "")] else []
+-- Parse a program (a list of expressions)
+program :: Parser Program
+program = do
+  whitespace  -- Handle any leading whitespace
+  es <- expList
+  whitespace  -- Handle any trailing whitespace
+  eof
+  pure $ Program es
 
--- parse :: String -> Program
-parse string = tail $ runParser expList string 
--- Run the parser on an input string
-parseExpr :: String -> Maybe Expr
-parseExpr = undefined
+-- Main parsing function that returns either a parsed program or an error
+parse :: String -> Either String Program
+parse input = case runParser program input of
+  [] -> Left "Parse error: could not parse program"
+  [(prog, "")] -> Right prog  -- Successful parse with no remaining input
+  [(_, rest)] -> Left $ "Parse error: unconsumed input: " ++ rest
+  _ -> Left "Parse error: ambiguous parse results"
 
--- Run the program parser on an input string
-parseProgram :: String -> Maybe Program
-parseProgram = undefined
