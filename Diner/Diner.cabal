@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Parser
   other-modules:
       Paths_Diner
   autogen-modules:
@@ -35,6 +36,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
 
 executable Diner-exe
@@ -49,6 +51,7 @@ executable Diner-exe
   build-depends:
       Diner
     , base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
 
 test-suite Diner-test
@@ -64,4 +67,5 @@ test-suite Diner-test
   build-depends:
       Diner
     , base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
