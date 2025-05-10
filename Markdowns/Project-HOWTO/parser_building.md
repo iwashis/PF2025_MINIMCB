@@ -791,3 +791,104 @@ For further development, you might consider:
 - Creating visualizations of the execution
 
 Happy programming!
+
+# More on Lexers 
+A lexer is a fundamental component in the parsing process of a programming language or domain-specific language. 
+
+## What is a Lexer?
+
+A lexer (short for "lexical analyzer") is the first stage in the process of interpreting or compiling code. It has a specific job: to transform a stream of characters (the raw text of your program) into a stream of "tokens."
+
+### Key Functions of a Lexer:
+
+1. **Tokenization**: Breaking down the input text into meaningful chunks called tokens
+2. **Classification**: Identifying what type each token is (keyword, identifier, literal, operator, etc.)
+3. **Filtering**: Removing elements not needed for parsing, such as whitespace and comments
+4. **Position tracking**: Recording line and column information for error reporting
+
+### Example of Lexical Analysis:
+
+Consider this line from your Dining language:
+```
+let leftFork = "fork" ++ i;
+```
+
+The lexer would break this down into tokens like:
+- `let` (keyword)
+- `leftFork` (identifier)
+- `=` (operator)
+- `"fork"` (string literal)
+- `++` (operator)
+- `i` (identifier)
+- `;` (semicolon)
+
+## Lexer in Our Implementation
+
+In our Haskell implementation, we're using Parsec's token parser to create our lexer:
+
+```haskell
+lexer :: Token.TokenParser ()
+lexer = Token.makeTokenParser style
+  where
+    style = emptyDef
+      { Token.commentLine = "//"
+      , Token.reservedNames = 
+          [ "think", "eat", "print", "declareResource", "loop"
+          , "spawn", "lockAll", "unlockAll", "let", "foreach"
+          , "to", "as", "if", "else", "rand", "resource"
+          ]
+      , Token.reservedOpNames = 
+          [ "+", "-", "%", "++", "=", "=="
+          ]
+      }
+```
+
+Let's break this down:
+
+1. `Token.makeTokenParser` creates a lexer based on a language definition
+2. `emptyDef` provides a basic language definition that we customize with:
+   - `commentLine = "//"` - Defines how comments start in our language
+   - `reservedNames` - Keywords in our language that can't be used as identifiers
+   - `reservedOpNames` - Operators in our language
+
+From this lexer, we derive several helper parsers:
+
+```haskell
+identifier :: Parser String       -- Parses variable names
+reserved :: String -> Parser ()   -- Parses keywords
+reservedOp :: String -> Parser () -- Parses operators
+integer :: Parser Int             -- Parses integer literals
+stringLiteral :: Parser String    -- Parses string literals
+parens :: Parser a -> Parser a    -- Parses parenthesized expressions
+braces :: Parser a -> Parser a    -- Parses braced blocks
+brackets :: Parser a -> Parser a  -- Parses bracketed lists
+semi :: Parser String             -- Parses semicolons
+whiteSpace :: Parser ()           -- Parses whitespace
+commaSep :: Parser a -> Parser [a] -- Parses comma-separated lists
+```
+
+These functions handle the low-level details of parsing different token types, allowing our higher-level parsers to focus on the structure of the language rather than the character-by-character parsing.
+
+## Why Lexers Are Important
+
+1. **Simplification**: They simplify the parser's job by handling low-level character processing
+2. **Error Handling**: They provide helpful error messages at the lexical level
+3. **Efficiency**: They can make parsing more efficient by doing the character-by-character work once
+4. **Separation of Concerns**: They maintain a clean separation between lexical analysis and syntactic analysis
+
+## Lexer vs. Parser
+
+To clarify the difference:
+- **Lexer** (Lexical Analyzer): Converts character stream → token stream
+- **Parser** (Syntactic Analyzer): Converts token stream → parse tree/AST
+
+In our implementation, the lexer handles identifying tokens like keywords, operators, and literals, while the parser is responsible for understanding the grammatical structure of the program and building the AST.
+
+For example, in the expression parser:
+
+```haskell
+expr :: Parser Expr
+expr = buildExpressionParser operators term
+```
+
+The lexer has already identified tokens like variables and operators, and the parser is using them to build a structured representation of expressions with proper operator precedence.
