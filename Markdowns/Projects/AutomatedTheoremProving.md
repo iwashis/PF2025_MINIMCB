@@ -1,5 +1,7 @@
 # Automated Theorem Proving Language
 
+Taken (AK, AD, KS)
+
 ## Project Overview
 This project implements a simplified domain-specific language for expressing basic mathematical proofs in a machine-verifiable format. The language provides core constructs for defining axioms, stating theorems, and building step-by-step proofs.
 
