@@ -1,5 +1,6 @@
 # MiniGC: A Minimal Language for Exploring Garbage Collection
 
+Taken (JS, WR)
 ## Project Overview
 MiniGC is a minimal programming language designed to demonstrate different garbage collection strategies. The language includes only essential features needed to create interesting memory allocation patterns while providing a framework to implement and compare various garbage collection techniques.
 
