@@ -255,53 +255,74 @@ Now we'll implement the parser itself. We'll use Parsec's lexer to handle common
 First, let's define our lexer:
 
 ```haskell
--- Lexer definition
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser style
   where
     style = emptyDef
-      { Token.commentLine = "//"
-      , Token.reservedNames = 
+      { Token.commentLine = "//"  -- Define line comments to start with "//"
+      , Token.reservedNames =     -- Define keywords that cannot be used as identifiers
           [ "think", "eat", "print", "declareResource", "loop"
           , "spawn", "lockAll", "unlockAll", "let", "foreach"
           , "to", "as", "if", "else", "rand", "resource"
           ]
-      , Token.reservedOpNames = 
+      , Token.reservedOpNames =   -- Define operators for the language
           [ "+", "-", "%", "++", "=", "=="
           ]
       }
 
 -- Parser utilities from the lexer
+-- | Parse a valid identifier (variable name) in our dining philosophers language
+-- Identifiers cannot be any of the reserved keywords listed above
 identifier :: Parser String
 identifier = Token.identifier lexer
 
+-- | Parse one of our language's keywords like "think", "eat", "loop", etc.
+-- Fails if the keyword isn't one of those defined in reservedNames
 reserved :: String -> Parser ()
 reserved = Token.reserved lexer
 
+-- | Parse one of our language's operators: "+", "-", "%", "++", "=", or "=="
+-- Fails if the operator isn't one of those defined in reservedOpNames
 reservedOp :: String -> Parser ()
 reservedOp = Token.reservedOp lexer
 
+-- | Parse an integer literal in our language and convert it to Int
+-- Used for durations, indices, and numeric values
 integer :: Parser Int
 integer = fromIntegral <$> Token.integer lexer
 
+-- | Parse a string literal enclosed in double quotes
+-- Used for messages in print statements and resource names
 stringLiteral :: Parser String
 stringLiteral = Token.stringLiteral lexer
 
+-- | Parse an expression enclosed in parentheses
+-- Used for grouping expressions to control evaluation order
 parens :: Parser a -> Parser a
 parens = Token.parens lexer
 
+-- | Parse a block of statements enclosed in curly braces
+-- Used for loop bodies, spawn blocks, if/else blocks, and foreach loops
 braces :: Parser a -> Parser a
 braces = Token.braces lexer
 
+-- | Parse a list enclosed in square brackets
+-- Used for resource lists in lockAll and unlockAll statements
 brackets :: Parser a -> Parser a
 brackets = Token.brackets lexer
 
+-- | Parse a semicolon that terminates statements in our language
+-- All statements end with an optional semicolon
 semi :: Parser String
 semi = Token.semi lexer
 
+-- | Parse and consume whitespace and comments (starting with "//")
+-- Called at program start and handled automatically between tokens
 whiteSpace :: Parser ()
 whiteSpace = Token.whiteSpace lexer
 
+-- | Parse a comma-separated list of items
+-- Used for resource lists in lockAll and unlockAll statements
 commaSep :: Parser a -> Parser [a]
 commaSep = Token.commaSep lexer
 ```

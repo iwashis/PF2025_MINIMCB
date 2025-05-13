@@ -221,6 +221,7 @@ expList = many expr
 -- Parse the end of file/input
 eof :: Parser ()
 eof = StateT $ \input -> if null input then [((), "")] else []
+
 -- Parse a program (a list of expressions)
 program :: Parser Program
 program = do
