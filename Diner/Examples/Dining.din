@@ -1,0 +1,48 @@
+// Dining Philosophers Problem
+// This is a classic concurrency problem where philosophers must share forks
+// to eat, demonstrating resource allocation and deadlock prevention.
+
+// Define number of philosophers
+let numPhils = 5;
+
+// Declare fork resources
+foreach 0 to 4 as i {
+  declareResource "fork" ++ i;
+};
+
+// Create philosophers
+foreach 0 to 4 as i {
+  // Define left and right fork indices (with deadlock prevention)
+  let leftFork = "fork" ++ i;
+  let rightFork = "fork" ++ (i + 1) % numPhils;
+  
+  // Spawn philosopher process
+  spawn "philosopher" ++ i {
+    loop {
+      // Think for a random time
+      print "Philosopher " ++ i ++ " thinking";
+      think (rand 100 500);
+      
+      // Try to acquire forks
+      print "Philosopher " ++ i ++ " hungry, trying to get forks";
+      
+      lockAll [leftFork, rightFork] [left, right]; // let (left,right) = ...
+      
+      // Eat using the acquired forks
+      print "Philosopher " ++ i ++ " eating";
+      eat (rand 200 400) resource left resource right;
+      
+      // Release forks
+      print "Philosopher " ++ i ++ " finished eating, releasing forks";
+      unlockAll [left, right];
+    };
+  };
+};
+
+// Monitor process to track overall activity
+spawn "monitor" {
+  loop {
+    think 1000;
+    print "Monitor: checking status of philosophers";
+  };
+};
