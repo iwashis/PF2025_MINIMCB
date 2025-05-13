@@ -26,7 +26,7 @@ foreach 0 to 4 as i {
       // Try to acquire forks
       print "Philosopher " ++ i ++ " hungry, trying to get forks";
       
-      lockAll [leftFork, rightFork] [left, right];
+      lockAll [leftFork, rightFork] [left, right]; // let (left,right) = ...
       
       // Eat using the acquired forks
       print "Philosopher " ++ i ++ " eating";

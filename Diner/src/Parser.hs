@@ -7,8 +7,6 @@ import Text.Parsec.String (Parser)
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
-import Control.Monad (void)
-import Data.Functor.Identity (Identity)
 
 -- Abstract Syntax Tree definitions as provided in the project description
 data Program = Program [Statement]
@@ -31,7 +29,6 @@ data Expr
 data Statement
   = Think Expr                             -- Think for computed time units
   | Eat Expr Resource Resource             -- Eat for computed time units using two resources
-  | Print String                           -- Print to stdout (stores the evaluated string)
   | PrintExpr Expr                         -- Print expression (for parsing, will be converted to Print)
   | DeclareResource Expr                   -- Declare a global mutex resource 
   | Loop [Statement]                       -- Loop indefinitely
@@ -62,7 +59,6 @@ instance Show Expr where
 instance Show Statement where
   show (Think e) = "think " ++ show e ++ ";"
   show (Eat e r1 r2) = "eat " ++ show e ++ " " ++ show r1 ++ " " ++ show r2 ++ ";"
-  show (Print str) = "print \"" ++ str ++ "\";"
   show (PrintExpr e) = "print " ++ show e ++ ";"
   show (DeclareResource e) = "declareResource " ++ show e ++ ";"
   show (Loop stmts) = "loop {\n" ++ indent (unlines (map show stmts)) ++ "};"
