@@ -149,10 +149,10 @@ prop_randomExpr = forAll (genExpr 2) $ \expr ->
 -- Property 5: Whitespace is insignificant
 prop_whitespace :: Property
 prop_whitespace = forAll genIdentifier $ \varName ->
-    forAll genSmallPositiveInt $ \value ->
+    forAll genSmallInt $ \value ->
         let
-            compact = "let " ++ varName ++ "=" ++ show value ++ ";"
-            spaced = "let  " ++ varName ++ "  =  " ++ show value ++ "  ;"
+            compact = "let " ++ varName ++ "= " ++ show value ++ ";"
+            spaced = "let  " ++ varName ++ "  =    " ++ show value ++ "  ;"
          in
             parseProgram compact === parseProgram spaced
 
