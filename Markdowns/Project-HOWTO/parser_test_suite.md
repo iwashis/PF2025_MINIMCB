@@ -18,6 +18,69 @@ First, we need to update our `package.yaml` file to include the necessary testin
 
 ### Updating package.yaml
 
+We need to modify our `package.yaml` file to include testing dependencies. Here's the updated version with the key changes highlighted:
+
+```yaml
+name:                Diner
+version:             0.1.0.0
+github:              "githubuser/Diner"
+license:             BSD-3-Clause
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2025 Author name here"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+description:         Please see the README on GitHub at <https://github.com/githubuser/Diner#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- parsec
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  Diner-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - Diner
+
+tests:
+  Diner-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - Diner
+    - HUnit >= 1.6
+    - QuickCheck >= 2.14
+    - test-framework >= 0.8
+    - test-framework-hunit >= 0.3
+    - test-framework-quickcheck2 >= 0.3
+```
+
 Let's understand the testing dependencies we've added:
 
 1. **HUnit**: A unit testing framework for Haskell, similar to JUnit for Java. It's used for writing explicit test cases with expected inputs and outputs.
@@ -76,6 +139,16 @@ Now let's create the test directory structure and implement our test suite.
 
 First, create `test/Spec.hs` - this is our test entry point:
 
+```haskell
+module Main (main) where
+
+import Test.Framework (defaultMain)
+import qualified Parser.ParserSpec
+
+main :: IO ()
+main = defaultMain Parser.ParserSpec.tests
+```
+
 This simple module:
 1. Imports `defaultMain` from the test framework, which handles running tests and reporting results
 2. Imports our specific test module `Parser.ParserSpec`
@@ -89,7 +162,36 @@ The `defaultMain` function automatically:
 
 ### Test Module Structure
 
-Now let's create `test/Parser/ParserSpec.hs` - our comprehensive test suite:
+Now let's create `test/Parser/ParserSpec.hs` - our comprehensive test suite. Start with the module header and imports:
+
+```haskell
+module Parser.ParserSpec (tests) where
+
+import Test.Framework (testGroup)
+import Test.Framework.Providers.HUnit (testCase)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.HUnit
+import Test.QuickCheck
+
+import Control.Monad (liftM)
+import Text.Parsec (ParseError, parse)
+
+-- Import the parser module from your library
+import Parser
+
+-- | All tests - organized into unit tests and property tests
+tests =
+    [ testGroup "Unit tests" unitTests
+    , testGroup "Property-based tests" propertyTests
+    ]
+
+-- | Helper to run a parser on input and check against expected AST
+parseTest :: (Show a, Eq a) => (String -> Either ParseError a) -> String -> a -> Assertion
+parseTest parser input expected =
+    case parser input of
+        Left err -> assertFailure $ "Parse error: " ++ show err
+        Right result -> assertEqual ("Parsing: " ++ input) expected result
+```
 
 Let's understand this structure:
 
@@ -106,6 +208,44 @@ The `parseTest` helper function:
 ## Writing Unit Tests
 
 Unit tests verify specific parsing scenarios. Let's implement several comprehensive unit tests:
+
+```haskell
+-- | Unit Tests (5 total)
+
+-- Test integer literals
+test_intLit :: Assertion
+test_intLit = parseTest parseProgram "let x = 42;" (Program [Let "x" (IntLit 42)])
+
+-- Test string literals
+test_strLit :: Assertion
+test_strLit = parseTest parseProgram "let s = \"hello\";" (Program [Let "s" (StringLit "hello")])
+
+-- Test think statement
+test_think :: Assertion
+test_think = parseTest parseProgram "think 100;" (Program [Think (IntLit 100)])
+
+-- Test if statement
+test_ifStatement :: Assertion
+test_ifStatement =
+    parseTest
+        parseProgram
+        "if x % 2 { print \"odd\"; } else { print \"even\"; };"
+        ( Program
+            [ If
+                (Mod (Var "x") (IntLit 2))
+                [PrintExpr (StringLit "odd")]
+                [PrintExpr (StringLit "even")]
+            ]
+        )
+
+-- Test foreach statement
+test_foreachStatement :: Assertion
+test_foreachStatement =
+    parseTest
+        parseProgram
+        "foreach 1 to 5 as i { print i; };"
+        (Program [ForEach 1 5 "i" [PrintExpr (Var "i")]])
+```
 
 Let's examine each unit test:
 
@@ -143,6 +283,51 @@ This tests our iteration construct, ensuring:
 ## Property-Based Testing with QuickCheck
 
 Now let's add property-based tests that generate many test cases automatically. First, we need to create generators for our data types:
+
+```haskell
+-- | QuickCheck Properties (5 total)
+
+-- Generator for valid identifiers (variable names)
+genIdentifier :: Gen String
+genIdentifier = do
+    first <- elements $ ['a' .. 'z'] 
+    rest <- listOf $ elements $ ['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['_']
+    return (first : take 10 rest) -- Limit identifier length for readability
+
+-- Generator for simple string literals
+genStringLit :: Gen String
+genStringLit =
+    resize 20 $
+        listOf $
+            elements $
+                ['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ [' ', '!', '?', '.', ',']
+
+-- Generator for small integers
+genSmallInt :: Gen Int
+genSmallInt = choose (-100, 100)
+genSmallPositiveInt :: Gen Int
+genSmallPositiveInt = choose (1, 200)
+
+-- Generator for simple expressions
+genExpr :: Int -> Gen Expr
+genExpr 0 =
+    oneof
+        [ IntLit <$> genSmallInt
+        , StringLit <$> genStringLit
+        , Var <$> genIdentifier
+        ]
+genExpr n
+    | n > 0 =
+        let subexpr = genExpr (n - 1)
+         in frequency
+                [ (3, IntLit <$> genSmallInt)
+                , (3, StringLit <$> genStringLit)
+                , (3, Var <$> genIdentifier)
+                , (2, Add <$> subexpr <*> subexpr)
+                , (1, Mod <$> subexpr <*> subexpr)
+                , (2, Concat <$> subexpr <*> subexpr)
+                ]
+```
 
 Let's understand these generators:
 
@@ -187,6 +372,59 @@ This generator:
 
 Now let's add the actual property tests:
 
+```haskell
+-- Property 1: Integer literals parse correctly
+prop_intLit :: Int -> Property
+prop_intLit n =
+    let
+        expr = IntLit n
+        prog = Program [Let "x" expr]
+        src = "let x = " ++ show n ++ ";"
+     in
+        parseProgram src === Right prog
+
+-- Property 2: String literals parse correctly
+prop_strLit :: Property
+prop_strLit = forAll genStringLit $ \s ->
+    let
+        expr = StringLit s
+        prog = Program [Let "x" expr]
+        src = "let x = \"" ++ s ++ "\";"
+     in
+        parseProgram src === Right prog
+
+-- Property 3: Variable binding can be parsed
+prop_varBinding :: Property
+prop_varBinding = forAll genIdentifier $ \varName ->
+    forAll (genExpr 1) $ \expr ->
+        let
+            stmt = Let varName expr
+            prog = Program [stmt]
+            src = "let " ++ varName ++ " = " ++ show expr ++ ";"
+         in
+            case parseProgram src of
+                Right p -> prog == p
+                Left _ -> False
+
+-- Property 4: Random expressions can be parsed
+prop_randomExpr :: Property
+prop_randomExpr = forAll (genExpr 2) $ \expr ->
+    let src = "let test = " ++ show expr ++ ";"
+     in case parseProgram src of
+            Right _ -> True
+            Left _ -> False
+
+-- Property 5: Whitespace is insignificant
+prop_whitespace :: Property
+prop_whitespace = forAll genIdentifier $ \varName ->
+    forAll genSmallInt $ \value ->
+        let
+            compact = "let " ++ varName ++ "= " ++ show value ++ ";"
+            spaced = "let  " ++ varName ++ "  =    " ++ show value ++ "  ;"
+         in
+            parseProgram compact === parseProgram spaced
+```
+
 Let's examine each property test:
 
 ### 1. Integer Literal Property
@@ -225,6 +463,25 @@ prop_whitespace = parseProgram compact === parseProgram spaced
 This verifies that extra whitespace doesn't affect parsing results - a crucial property for any parser.
 
 Finally, let's add the test group definitions:
+
+```haskell
+-- Test groups
+unitTests =
+    [ testCase "Parse integer literal" test_intLit
+    , testCase "Parse string literal" test_strLit
+    , testCase "Parse think statement" test_think
+    , testCase "Parse if statement" test_ifStatement
+    , testCase "Parse foreach statement" test_foreachStatement
+    ]
+
+propertyTests =
+    [ testProperty "Integer literals parse correctly" prop_intLit
+    , testProperty "String literals parse correctly" prop_strLit
+    , testProperty "Variable binding can be parsed" prop_varBinding
+    , testProperty "Random expressions can be parsed" prop_randomExpr
+    , testProperty "Whitespace is insignificant" prop_whitespace
+    ]
+```
 
 These test groups organize our tests and provide descriptive names that will appear in the test output.
 
@@ -410,6 +667,79 @@ test_diningPhilosophersSnippet = do
     case parseProgram program of
         Right _ -> return ()
         Left err -> assertFailure $ "Failed to parse dining philosophers snippet: " ++ show err
+```
+
+### Testing Parser Error Messages
+Ensure your parser provides helpful error messages:
+
+```haskell
+test_helpfulErrorMessages :: Assertion
+test_helpfulErrorMessages = do
+    case parseProgram "let x = ;" of
+        Left err -> do
+            let errorMsg = show err
+            assertBool "Error should mention missing expression" 
+                       ("expression" `isInfixOf` errorMsg)
+        Right _ -> assertFailure "Should have failed"
+```
+
+### Performance Testing
+For larger parsers, consider adding performance benchmarks:
+
+```haskell
+test_parsePerformance :: Assertion
+test_parsePerformance = do
+    let largeProgram = concat $ replicate 1000 "let x = 42; "
+    start <- getCurrentTime
+    case parseProgram largeProgram of
+        Right _ -> do
+            end <- getCurrentTime
+            let duration = diffUTCTime end start
+            assertBool "Parsing should complete in under 1 second" 
+                       (duration < 1.0)
+        Left err -> assertFailure $ "Large program should parse: " ++ show err
+```
+
+## Troubleshooting Common Issues
+
+### Generator Issues
+If your property tests are failing unexpectedly, debug your generators:
+
+```haskell
+-- Add this to test your generators
+test_generators :: IO ()
+test_generators = do
+    putStrLn "Sample identifiers:"
+    sample genIdentifier >>= mapM_ putStrLn
+    
+    putStrLn "\nSample expressions:"
+    sample (genExpr 1) >>= mapM_ print
+```
+
+### Show Instance Problems
+Make sure your AST types have proper `Show` instances, or tests will fail mysteriously:
+
+```haskell
+-- If you get strange test failures, check that all your types derive Show
+data Expr = IntLit Int | StringLit String
+  deriving (Eq, Show) -- Show is crucial for testing
+```
+
+### Import Issues
+Ensure your test modules can import your parser:
+
+```haskell
+-- In test/Parser/ParserSpec.hs
+import Parser  -- This should import your main parser module
+
+-- Make sure your Parser module exports what you need:
+-- In src/Parser.hs
+module Parser 
+    ( Program(..)
+    , Statement(..)
+    , Expr(..)
+    , parseProgram
+    ) where
 ```
 
 ## Conclusion
