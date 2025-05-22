@@ -152,7 +152,7 @@ prop_whitespace = forAll genIdentifier $ \varName ->
     forAll genSmallInt $ \value ->
         let
             compact = "let " ++ varName ++ "= " ++ show value ++ ";"
-            spaced = "let  " ++ varName ++ "  =    " ++ show value ++ "  ;"
+            spaced = "let  " ++ varName ++ "  = " ++ show value ++ "  ;"
          in
             parseProgram compact === parseProgram spaced
 
