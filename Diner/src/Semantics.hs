@@ -1,0 +1,334 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
+module Semantics where
+
+import Parser
+import Control.Concurrent
+import Control.Concurrent.STM
+import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.State
+import Control.Exception (catch, SomeException)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import System.Random
+import Text.Read (readMaybe)
+
+-- Runtime values
+data Value
+    = VInt Int
+    | VString String
+    | VResource (TMVar ())  -- STM transactional variable for resource locking
+    deriving (Eq)
+
+instance Show Value where
+    show (VInt n) = show n
+    show (VString s) = s
+    show (VResource _) = "<resource>"
+
+-- Process state containing variable bindings
+type Environment = Map String Value
+
+-- Global state containing all resources and processes
+data GlobalState = GlobalState
+    { globalResources :: Map String (TMVar ())
+    , processCounter :: Int
+    } deriving (Eq)
+
+-- Evaluation monad combining IO, State, and STM capabilities
+type EvalM = StateT GlobalState IO
+
+-- Initialize empty global state
+initialState :: GlobalState
+initialState = GlobalState Map.empty 0
+
+-- Run the evaluator
+runEval :: EvalM a -> IO a
+runEval action = evalStateT action initialState
+
+-- Expression evaluation with better error handling
+evalExpr :: Environment -> Expr -> EvalM Value
+evalExpr env expr = case expr of
+    Var name -> 
+        case Map.lookup name env of
+            Just val -> return val
+            Nothing -> liftIO $ do
+                putStrLn $ "Error: Undefined variable: " ++ name
+                return $ VString ("<undefined:" ++ name ++ ">")
+    
+    StringLit s -> return $ VString s
+    
+    IntLit n -> return $ VInt n
+    
+    Concat e1 e2 -> do
+        v1 <- evalExpr env e1
+        v2 <- evalExpr env e2
+        return $ VString (valueToString v1 ++ valueToString v2)
+    
+    Rand e1 e2 -> do
+        v1 <- evalExpr env e1
+        v2 <- evalExpr env e2
+        case (v1, v2) of
+            (VInt lower, VInt upper) -> liftIO $ do
+                gen <- newStdGen
+                let (val, _) = randomR (lower, upper) gen
+                return $ VInt val
+            _ -> liftIO $ do
+                putStrLn "Error: rand requires integer arguments"
+                return $ VInt 0
+    
+    Add e1 e2 -> do
+        v1 <- evalExpr env e1
+        v2 <- evalExpr env e2
+        case (v1, v2) of
+            (VInt n1, VInt n2) -> return $ VInt (n1 + n2)
+            _ -> liftIO $ do
+                putStrLn "Error: + requires integer operands"
+                return $ VInt 0
+    
+    Sub e1 e2 -> do
+        v1 <- evalExpr env e1
+        v2 <- evalExpr env e2
+        case (v1, v2) of
+            (VInt n1, VInt n2) -> return $ VInt (n1 - n2)
+            _ -> liftIO $ do
+                putStrLn "Error: - requires integer operands"
+                return $ VInt 0
+    
+    Mod e1 e2 -> do
+        v1 <- evalExpr env e1
+        v2 <- evalExpr env e2
+        case (v1, v2) of
+            (VInt n1, VInt n2) | n2 /= 0 -> return $ VInt (n1 `mod` n2)
+            (VInt _, VInt 0) -> liftIO $ do
+                putStrLn "Error: division by zero in mod operation"
+                return $ VInt 0
+            _ -> liftIO $ do
+                putStrLn "Error: % requires integer operands"
+                return $ VInt 0
+
+-- Convert value to string representation
+valueToString :: Value -> String
+valueToString (VInt n) = show n
+valueToString (VString s) = s
+valueToString (VResource _) = "<resource>"
+
+-- Convert value to integer (for conditions)
+valueToBool :: Value -> Bool
+valueToBool (VInt 0) = False
+valueToBool (VInt _) = True
+valueToBool (VString "") = False
+valueToBool (VString _) = True
+valueToBool (VResource _) = True
+
+-- Safe resource lookup
+lookupResource :: String -> Environment -> Maybe (TMVar ())
+lookupResource name env = case Map.lookup name env of
+    Just (VResource tmvar) -> Just tmvar
+    _ -> Nothing
+
+-- Statement execution with improved error handling
+execStmt :: Environment -> Statement -> EvalM Environment
+execStmt env stmt = liftIO $ (execStmt' env stmt) `catch` \(e :: SomeException) -> do
+    liftIO $ putStrLn $ "Runtime error: " ++ show e
+    return env
+  where
+    execStmt' environment statement = runEval $ case statement of
+        Think expr -> do
+            val <- evalExpr environment expr
+            case val of
+                VInt duration -> do
+                    liftIO $ do
+                        putStrLn $ "Thinking for " ++ show duration ++ " time units"
+                        threadDelay (duration * 1000) -- Convert to microseconds
+                    return environment
+                _ -> do
+                    liftIO $ putStrLn "Error: think requires integer argument"
+                    return environment
+        
+        Eat expr (Resource r1Name) (Resource r2Name) -> do
+            val <- evalExpr environment expr
+            case val of
+                VInt duration -> do
+                    -- Look up resources in environment (they should be bound variables)
+                    case (lookupResource r1Name environment, lookupResource r2Name environment) of
+                        (Just _, Just _) -> do
+                            liftIO $ do
+                                putStrLn $ "Eating for " ++ show duration ++ " time units using resources " ++ r1Name ++ " and " ++ r2Name
+                                threadDelay (duration * 1000)
+                            return environment
+                        _ -> do
+                            liftIO $ putStrLn $ "Error: Resources not found in environment: " ++ r1Name ++ ", " ++ r2Name
+                            return environment
+                _ -> do
+                    liftIO $ putStrLn "Error: eat requires integer duration"
+                    return environment
+        
+        PrintExpr expr -> do
+            val <- evalExpr environment expr
+            liftIO $ putStrLn $ valueToString val
+            return environment
+        
+        DeclareResource expr -> do
+            val <- evalExpr environment expr
+            case val of
+                VString name -> do
+                    resource <- liftIO $ newTMVarIO ()
+                    modify $ \s -> s { globalResources = Map.insert name resource (globalResources s) }
+                    liftIO $ putStrLn $ "Declared resource: " ++ name
+                    return environment
+                _ -> do
+                    liftIO $ putStrLn "Error: declareResource requires string argument"
+                    return environment
+        
+        Loop stmts -> do
+            liftIO $ forkIO $ runLoop environment stmts
+            return environment
+          where
+            runLoop env statements = do
+                newEnv <- runEval $ execStmts env statements
+                runLoop newEnv statements
+        
+        Spawn expr stmts -> do
+            val <- evalExpr environment expr
+            case val of
+                VString processName -> do
+                    liftIO $ do
+                        putStrLn $ "Spawning process: " ++ processName
+                        forkIO $ do
+                            _ <- runEval $ execStmts environment stmts
+                            putStrLn $ "Process " ++ processName ++ " terminated"
+                            return ()
+                        return ()
+                    return environment
+                _ -> do
+                    liftIO $ putStrLn "Error: spawn requires string process name"
+                    return environment
+        
+        LockAll exprs varNames -> do
+            -- Evaluate resource expressions to get resource names
+            vals <- mapM (evalExpr environment) exprs
+            let resourceNames = [name | VString name <- vals]
+            
+            if length resourceNames /= length vals
+                then do
+                    liftIO $ putStrLn "Error: All resource expressions must evaluate to strings"
+                    return environment
+                else do
+                    globalState <- get
+                    
+                    -- Look up actual TMVar resources
+                    let maybeResources = map (\name -> 
+                            case Map.lookup name (globalResources globalState) of
+                                Just tmvar -> Just tmvar
+                                Nothing -> Nothing
+                            ) resourceNames
+                    
+                    case sequence maybeResources of
+                        Just resources -> do
+                            -- Atomically acquire all resources
+                            liftIO $ atomically $ mapM_ takeTMVar resources
+                            
+                            -- Bind resources to variable names in environment
+                            let resourceValues = map VResource resources
+                            let newBindings = Map.fromList $ zip varNames resourceValues
+                            let newEnv = Map.union newBindings environment
+                            
+                            liftIO $ putStrLn $ "Locked resources: " ++ show resourceNames
+                            return newEnv
+                        Nothing -> do
+                            liftIO $ putStrLn $ "Error: Some resources not found: " ++ show resourceNames
+                            return environment
+        
+        UnlockAll resources -> do
+            -- Look up resource TMVars in environment and release them
+            let resourceNames = [name | Resource name <- resources]
+            let maybeResources = map (\name -> lookupResource name environment) resourceNames
+            
+            case sequence maybeResources of
+                Just tmvars -> do
+                    liftIO $ atomically $ mapM_ (`putTMVar` ()) tmvars
+                    liftIO $ putStrLn $ "Unlocked resources: " ++ show resourceNames
+                    return environment
+                Nothing -> do
+                    liftIO $ putStrLn $ "Error: Some resources not found in environment: " ++ show resourceNames
+                    return environment
+        
+        Let varName expr -> do
+            val <- evalExpr environment expr
+            return $ Map.insert varName val environment
+        
+        ForEach start end varName stmts -> do
+            foldM (\currentEnv i -> do
+                let loopEnv = Map.insert varName (VInt i) currentEnv
+                execStmts loopEnv stmts
+              ) environment [start..end]
+        
+        If condExpr thenStmts elseStmts -> do
+            condVal <- evalExpr environment condExpr
+            if valueToBool condVal
+                then execStmts environment thenStmts
+                else execStmts environment elseStmts
+
+-- Execute a list of statements
+execStmts :: Environment -> [Statement] -> EvalM Environment
+execStmts = foldM execStmt
+
+-- Execute a complete program
+execProgram :: Program -> EvalM ()
+execProgram (Program stmts) = do
+    liftIO $ putStrLn "=== Starting program execution ==="
+    _ <- execStmts Map.empty stmts
+    liftIO $ putStrLn "=== Main program execution completed ==="
+    -- Keep main thread alive to let spawned processes run
+    liftIO $ threadDelay 3000000 -- 3 seconds
+    return ()
+
+-- Convenience function to run a program
+runProgram :: Program -> IO ()
+runProgram program = runEval $ execProgram program
+
+-- Debug function to print current environment
+printEnv :: Environment -> IO ()
+printEnv env = do
+    putStrLn "Current environment:"
+    mapM_ (\(k, v) -> putStrLn $ "  " ++ k ++ " = " ++ show v) (Map.toList env)
+
+-- Helper function to evaluate and print expressions (for testing)
+evalAndPrint :: String -> Expr -> IO ()
+evalAndPrint description expr = do
+    result <- runEval $ evalExpr Map.empty expr
+    putStrLn $ description ++ ": " ++ show result
+
+-- Test the evaluator with simple expressions
+testEvaluator :: IO ()
+testEvaluator = do
+    putStrLn "=== Testing Expression Evaluator ==="
+    
+    -- Test basic expressions
+    evalAndPrint "Integer literal" (IntLit 42)
+    evalAndPrint "String literal" (StringLit "Hello")
+    evalAndPrint "Addition" (Add (IntLit 10) (IntLit 5))
+    evalAndPrint "Subtraction" (Sub (IntLit 10) (IntLit 3))
+    evalAndPrint "Modulo" (Mod (IntLit 10) (IntLit 3))
+    evalAndPrint "String concatenation" (Concat (StringLit "Hello ") (StringLit "World"))
+    
+    -- Test random (will vary each run)
+    putStrLn "\nTesting random expressions (results will vary):"
+    evalAndPrint "Random 1-10" (Rand (IntLit 1) (IntLit 10))
+    evalAndPrint "Random 1-10" (Rand (IntLit 1) (IntLit 10))
+    evalAndPrint "Random 1-10" (Rand (IntLit 1) (IntLit 10))
+    
+    putStrLn "\n=== Testing Simple Program Execution ==="
+    
+    -- Test simple program
+    let simpleProgram = Program 
+            [ Let "x" (IntLit 10)
+            , Let "y" (IntLit 20)  
+            , Let "sum" (Add (Var "x") (Var "y"))
+            , PrintExpr (Var "sum")
+            , Think (IntLit 100)
+            , PrintExpr (Concat (StringLit "The sum is: ") (Var "sum"))
+            ]
+    
+    runProgram simpleProgram

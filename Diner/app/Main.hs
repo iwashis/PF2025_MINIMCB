@@ -4,10 +4,11 @@ import System.Environment (getArgs)
 import System.IO (readFile)
 import Text.Parsec.Error (ParseError)
 import Parser 
+import Semantics (testEvaluator, runProgram)
 
 -- | Main function to parse a file
 main :: IO ()
-main = parseFile 
+main =  parseFile 
 
 
 parseFile :: IO ()
@@ -23,6 +24,8 @@ parseFile = do
         Right ast -> do
           putStrLn "Successfully parsed program:"
           print ast
+          putStrLn "================== Running the program ====================="
+          runProgram ast
     _ -> putStrLn "Usage: parser <filename>"
 
 -- | Parse a string and print the result
