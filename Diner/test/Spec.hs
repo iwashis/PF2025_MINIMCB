@@ -1,2 +1,9 @@
+module Main (main) where
+
+
+import Test.Framework (defaultMain)
+import qualified Parser.ParserSpec
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = defaultMain Parser.ParserSpec.tests
+

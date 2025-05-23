@@ -1,78 +1,87 @@
 module Parser where
 
-
-import Text.Parsec
 import Data.List (intercalate)
-import Text.Parsec.String (Parser)
+import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
+import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as Token
 
 -- Abstract Syntax Tree definitions as provided in the project description
 data Program = Program [Statement]
-  deriving (Eq)
+    deriving (Eq)
 
 data Resource = Resource String
-  deriving (Eq)
+    deriving (Eq)
 
 data Expr
-  = Var String                  -- Variable reference
-  | StringLit String            -- String literal
-  | Concat Expr Expr            -- String concatenation
-  | IntLit Int                  -- Integer literal
-  | Rand Expr Expr              -- Random integer in range
-  | Add Expr Expr               -- Addition
-  | Sub Expr Expr               -- Subtraction
-  | Mod Expr Expr               -- Modulo operation
-  deriving (Eq)
+    = Var String -- Variable reference
+    | StringLit String -- String literal
+    | Concat Expr Expr -- String concatenation
+    | IntLit Int -- Integer literal
+    | Rand Expr Expr -- Random integer in range
+    | Add Expr Expr -- Addition
+    | Sub Expr Expr -- Subtraction
+    | Mod Expr Expr -- Modulo operation
+    deriving (Eq)
 
 data Statement
-  = Think Expr                             -- Think for computed time units
-  | Eat Expr Resource Resource             -- Eat for computed time units using two resources
-  | PrintExpr Expr                         -- Print expression (for parsing, will be converted to Print)
-  | DeclareResource Expr                   -- Declare a global mutex resource 
-  | Loop [Statement]                       -- Loop indefinitely
-  | Spawn Expr [Statement]                 -- Spawn named process with statements
-  | LockAll [Expr] [String]                -- Atomically lock resources, binding results to variables
-  | UnlockAll [Resource]                   -- Atomically unlock multiple resources
-  | Let String Expr                        -- Variable binding
-  | ForEach Int Int String [Statement]     -- Iterate from start to end, binding index to variable
-  | If Expr [Statement] [Statement]        -- Conditional execution
-  deriving (Eq)
+    = Think Expr -- Think for computed time units
+    | Eat Expr Resource Resource -- Eat for computed time units using two resources
+    | PrintExpr Expr -- Print expression (for parsing, will be converted to Print)
+    | DeclareResource Expr -- Declare a global mutex resource
+    | Loop [Statement] -- Loop indefinitely
+    | Spawn Expr [Statement] -- Spawn named process with statements
+    | LockAll [Expr] [String] -- Atomically lock resources, binding results to variables
+    | UnlockAll [Resource] -- Atomically unlock multiple resources
+    | Let String Expr -- Variable binding
+    | ForEach Int Int String [Statement] -- Iterate from start to end, binding index to variable
+    | If Expr [Statement] [Statement] -- Conditional execution
+    deriving (Eq)
 
 instance Show Program where
-  show (Program stmts) = unlines (map show stmts)
+    show (Program stmts) = unlines (map show stmts)
 
 instance Show Resource where
-  show (Resource name) = "resource " ++ name
+    show (Resource name) = "resource " ++ name
 
 instance Show Expr where
-  show (Var name) = name
-  show (StringLit str) = "\"" ++ str ++ "\""
-  show (IntLit n) = show n
-  show (Concat e1 e2) = "(" ++ show e1 ++ " ++ " ++ show e2 ++ ")"
-  show (Rand e1 e2) = "rand " ++ show e1 ++ " " ++ show e2
-  show (Add e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")"
-  show (Sub e1 e2) = "(" ++ show e1 ++ " - " ++ show e2 ++ ")"
-  show (Mod e1 e2) = "(" ++ show e1 ++ " % " ++ show e2 ++ ")"
+    show (Var name) = name
+    show (StringLit str) = "\"" ++ str ++ "\""
+    show (IntLit n) = show n
+    show (Concat e1 e2) = "(" ++ show e1 ++ " ++ " ++ show e2 ++ ")"
+    show (Rand e1 e2) = "rand " ++ show e1 ++ " " ++ show e2
+    show (Add e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")"
+    show (Sub e1 e2) = "(" ++ show e1 ++ " - " ++ show e2 ++ ")"
+    show (Mod e1 e2) = "(" ++ show e1 ++ " % " ++ show e2 ++ ")"
 
 instance Show Statement where
-  show (Think e) = "think " ++ show e ++ ";"
-  show (Eat e r1 r2) = "eat " ++ show e ++ " " ++ show r1 ++ " " ++ show r2 ++ ";"
-  show (PrintExpr e) = "print " ++ show e ++ ";"
-  show (DeclareResource e) = "declareResource " ++ show e ++ ";"
-  show (Loop stmts) = "loop {\n" ++ indent (unlines (map show stmts)) ++ "};"
-  show (Spawn e stmts) = "spawn " ++ show e ++ " {\n" ++ indent (unlines (map show stmts)) ++ "};"
-  show (LockAll exprs vars) = "lockAll [" ++ commaSep' (map show exprs) ++ "] [" ++ commaSep' vars ++ "];"
-  show (UnlockAll res) = "unlockAll [" ++ commaSep' (map show res) ++ "];"
-  show (Let var e) = "let " ++ var ++ " = " ++ show e ++ ";"
-  show (ForEach start end var stmts) = 
-    "foreach " ++ show start ++ " to " ++ show end ++ " as " ++ var ++ " {\n" ++ 
-    indent (unlines (map show stmts)) ++ "};"
-  show (If cond thenStmts elseStmts) = 
-    "if " ++ show cond ++ " {\n" ++ 
-    indent (unlines (map show thenStmts)) ++ 
-    (if null elseStmts then "}" else "} else {\n" ++ indent (unlines (map show elseStmts)) ++ "}") ++ ";"
+    show (Think e) = "think " ++ show e ++ ";"
+    show (Eat e r1 r2) = "eat " ++ show e ++ " " ++ show r1 ++ " " ++ show r2 ++ ";"
+    show (PrintExpr e) = "print " ++ show e ++ ";"
+    show (DeclareResource e) = "declareResource " ++ show e ++ ";"
+    show (Loop stmts) = "loop {\n" ++ indent (unlines (map show stmts)) ++ "};"
+    show (Spawn e stmts) = "spawn " ++ show e ++ " {\n" ++ indent (unlines (map show stmts)) ++ "};"
+    show (LockAll exprs vars) = "lockAll [" ++ commaSep' (map show exprs) ++ "] [" ++ commaSep' vars ++ "];"
+    show (UnlockAll res) = "unlockAll [" ++ commaSep' (map show res) ++ "];"
+    show (Let var e) = "let " ++ var ++ " = " ++ show e ++ ";"
+    show (ForEach start end var stmts) =
+        "foreach "
+            ++ show start
+            ++ " to "
+            ++ show end
+            ++ " as "
+            ++ var
+            ++ " {\n"
+            ++ indent (unlines (map show stmts))
+            ++ "};"
+    show (If cond thenStmts elseStmts) =
+        "if "
+            ++ show cond
+            ++ " {\n"
+            ++ indent (unlines (map show thenStmts))
+            ++ (if null elseStmts then "}" else "} else {\n" ++ indent (unlines (map show elseStmts)) ++ "}")
+            ++ ";"
 
 -- Helper functions
 indent :: String -> String
@@ -80,22 +89,42 @@ indent = unlines . map ("  " ++) . lines
 
 commaSep' :: [String] -> String
 commaSep' = intercalate ", "
+
 -- Lexer definition
 
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser style
   where
-    style = emptyDef
-      { Token.commentLine = "//"
-      , Token.reservedNames = 
-          [ "think", "eat", "print", "declareResource", "loop"
-          , "spawn", "lockAll", "unlockAll", "let", "foreach"
-          , "to", "as", "if", "else", "rand", "resource"
-          ]
-      , Token.reservedOpNames = 
-          [ "+", "-", "%", "++", "=", "=="
-          ]
-      }
+    style =
+        emptyDef
+            { Token.commentLine = "//"
+            , Token.reservedNames =
+                [ "think"
+                , "eat"
+                , "print"
+                , "declareResource"
+                , "loop"
+                , "spawn"
+                , "lockAll"
+                , "unlockAll"
+                , "let"
+                , "foreach"
+                , "to"
+                , "as"
+                , "if"
+                , "else"
+                , "rand"
+                , "resource"
+                ]
+            , Token.reservedOpNames =
+                [ "+"
+                , "-"
+                , "%"
+                , "++"
+                , "="
+                , "=="
+                ]
+            }
 
 -- Parser utilities from the lexer
 identifier :: Parser String
@@ -134,11 +163,12 @@ commaSep = Token.commaSep lexer
 -- Expression parser
 
 term :: Parser Expr
-term = parens expr
-    <|> Var <$> identifier
-    <|> StringLit <$> stringLiteral
-    <|> IntLit <$> integer
-    <|> randExpr
+term =
+    parens expr
+        <|> Var <$> identifier
+        <|> StringLit <$> stringLiteral
+        <|> IntLit <$> integer
+        <|> randExpr
 
 randExpr :: Parser Expr
 randExpr = do
@@ -150,29 +180,33 @@ randExpr = do
 expr :: Parser Expr
 expr = buildExpressionParser operators term
   where
-    operators = 
-      [ [Infix (reservedOp "++" >> return Concat) AssocLeft]
-      , [Infix (reservedOp "+" >> return Add) AssocLeft,
-         Infix (reservedOp "-" >> return Sub) AssocLeft]
-      , [Infix (reservedOp "%" >> return Mod) AssocLeft]
-      ]
+    operators =
+        [ [Infix (reservedOp "++" >> return Concat) AssocLeft]
+        ,
+            [ Infix (reservedOp "+" >> return Add) AssocLeft
+            , Infix (reservedOp "-" >> return Sub) AssocLeft
+            ]
+        , [Infix (reservedOp "%" >> return Mod) AssocLeft]
+        ]
 
 -- Statement parsers
 
 statement :: Parser Statement
-statement = choice 
-    [ thinkStmt
-    , eatStmt
-    , printStmt
-    , declareResourceStmt
-    , loopStmt
-    , spawnStmt
-    , lockAllStmt
-    , unlockAllStmt
-    , letStmt
-    , foreachStmt
-    , ifStmt
-    ] <* optional semi
+statement =
+    choice
+        [ thinkStmt
+        , eatStmt
+        , printStmt
+        , declareResourceStmt
+        , loopStmt
+        , spawnStmt
+        , lockAllStmt
+        , unlockAllStmt
+        , letStmt
+        , foreachStmt
+        , ifStmt
+        ]
+        <* optional semi
 
 thinkStmt :: Parser Statement
 thinkStmt = do
@@ -198,7 +232,7 @@ printStmt = do
 declareResourceStmt :: Parser Statement
 declareResourceStmt = do
     reserved "declareResource"
-    DeclareResource <$> expr 
+    DeclareResource <$> expr
 
 loopStmt :: Parser Statement
 loopStmt = do
@@ -222,27 +256,33 @@ lockAllStmt = do
     -- Define operators locally for this parser
     exprNoSpace = buildExpressionParser operatorsNoSpace termNoSpace
     -- Define the operators table for exprNoSpace
-    operatorsNoSpace = 
-      [ [Infix (reservedOp "++" >> return Concat) AssocLeft]
-      , [Infix (reservedOp "+" >> return Add) AssocLeft,
-         Infix (reservedOp "-" >> return Sub) AssocLeft]
-      , [Infix (reservedOp "%" >> return Mod) AssocLeft]
-      ]
-    termNoSpace = parens expr
-               <|> Var <$> identifier
-               <|> StringLit <$> stringLiteral
-               <|> IntLit <$> integer
-               <|> randExpr
+    operatorsNoSpace =
+        [ [Infix (reservedOp "++" >> return Concat) AssocLeft]
+        ,
+            [ Infix (reservedOp "+" >> return Add) AssocLeft
+            , Infix (reservedOp "-" >> return Sub) AssocLeft
+            ]
+        , [Infix (reservedOp "%" >> return Mod) AssocLeft]
+        ]
+    termNoSpace =
+        parens expr
+            <|> Var <$> identifier
+            <|> StringLit <$> stringLiteral
+            <|> IntLit <$> integer
+            <|> randExpr
 unlockAllStmt :: Parser Statement
 unlockAllStmt = do
     reserved "unlockAll"
     resources <- brackets $ commaSep resourceReference
     return $ UnlockAll resources
   where
-    resourceReference = try (do
-        reserved "resource"
-        Resource <$> identifier)
-      <|> (Resource <$> identifier)
+    resourceReference =
+        try
+            ( do
+                reserved "resource"
+                Resource <$> identifier
+            )
+            <|> (Resource <$> identifier)
 
 letStmt :: Parser Statement
 letStmt = do
@@ -283,4 +323,3 @@ programParser = do
 -- Parse a string into a Program
 parseProgram :: String -> Either ParseError Program
 parseProgram = parse programParser ""
-
