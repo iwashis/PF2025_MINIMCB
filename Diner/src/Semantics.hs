@@ -7,7 +7,7 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.IO.Class
-import Control.Monad.State
+import Control.Monad.Reader
 import Control.Exception (catch, SomeException)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -29,22 +29,25 @@ instance Show Value where
 -- Process state containing variable bindings
 type Environment = Map String Value
 
--- Global state containing all resources and processes
+-- Global state containing all resources and processes - now shared via TVar
 data GlobalState = GlobalState
     { globalResources :: Map String (TMVar ())
     , processCounter :: Int
     } deriving (Eq)
 
--- Evaluation monad combining IO, State, and STM capabilities
-type EvalM = StateT GlobalState IO
+-- Shared global state
+type SharedGlobalState = TVar GlobalState
+
+-- Evaluation monad that uses shared global state
+type EvalM = ReaderT SharedGlobalState IO
 
 -- Initialize empty global state
 initialState :: GlobalState
 initialState = GlobalState Map.empty 0
 
--- Run the evaluator
-runEval :: EvalM a -> IO a
-runEval action = evalStateT action initialState
+-- Run the evaluator with shared state
+runEval :: SharedGlobalState -> EvalM a -> IO a
+runEval sharedState action = runReaderT action sharedState
 
 -- Expression evaluation with better error handling
 evalExpr :: Environment -> Expr -> EvalM Value
@@ -121,25 +124,42 @@ valueToBool (VString "") = False
 valueToBool (VString _) = True
 valueToBool (VResource _) = True
 
--- Safe resource lookup
+-- Safe resource lookup in environment
 lookupResource :: String -> Environment -> Maybe (TMVar ())
 lookupResource name env = case Map.lookup name env of
     Just (VResource tmvar) -> Just tmvar
     _ -> Nothing
 
+-- Safe resource lookup in global state
+lookupGlobalResource :: String -> EvalM (Maybe (TMVar ()))
+lookupGlobalResource name = do
+    sharedState <- ask
+    globalState <- liftIO $ readTVarIO sharedState
+    return $ Map.lookup name (globalResources globalState)
+
+-- Update global state
+updateGlobalState :: (GlobalState -> GlobalState) -> EvalM ()
+updateGlobalState f = do
+    sharedState <- ask
+    liftIO $ atomically $ modifyTVar sharedState f
+
 -- Statement execution with improved error handling
 execStmt :: Environment -> Statement -> EvalM Environment
-execStmt env stmt = liftIO $ (execStmt' env stmt) `catch` \(e :: SomeException) -> do
-    liftIO $ putStrLn $ "Runtime error: " ++ show e
-    return env
-  where
-    execStmt' environment statement = runEval $ case statement of
+execStmt env stmt = do
+    sharedState <- ask
+    result <- liftIO $ (runEval sharedState $ execStmt' env stmt) `catch` \(e :: SomeException) -> do
+        putStrLn $ "Runtime error: " ++ show e
+        return env
+    return result
+
+execStmt' :: Environment -> Statement -> EvalM Environment
+execStmt' environment statement = case statement of
         Think expr -> do
             val <- evalExpr environment expr
             case val of
                 VInt duration -> do
                     liftIO $ do
-                        putStrLn $ "Thinking for " ++ show duration ++ " time units"
+                        -- putStrLn $ "Thinking for " ++ show duration ++ " time units"
                         threadDelay (duration * 1000) -- Convert to microseconds
                     return environment
                 _ -> do
@@ -174,7 +194,7 @@ execStmt env stmt = liftIO $ (execStmt' env stmt) `catch` \(e :: SomeException) 
             case val of
                 VString name -> do
                     resource <- liftIO $ newTMVarIO ()
-                    modify $ \s -> s { globalResources = Map.insert name resource (globalResources s) }
+                    updateGlobalState $ \s -> s { globalResources = Map.insert name resource (globalResources s) }
                     liftIO $ putStrLn $ "Declared resource: " ++ name
                     return environment
                 _ -> do
@@ -182,21 +202,23 @@ execStmt env stmt = liftIO $ (execStmt' env stmt) `catch` \(e :: SomeException) 
                     return environment
         
         Loop stmts -> do
-            liftIO $ forkIO $ runLoop environment stmts
+            sharedState <- ask
+            liftIO $ forkIO $ runLoop sharedState environment stmts
             return environment
           where
-            runLoop env statements = do
-                newEnv <- runEval $ execStmts env statements
-                runLoop newEnv statements
+            runLoop shared env statements = do
+                newEnv <- runEval shared $ execStmts env statements
+                runLoop shared newEnv statements
         
         Spawn expr stmts -> do
             val <- evalExpr environment expr
             case val of
                 VString processName -> do
+                    sharedState <- ask
                     liftIO $ do
                         putStrLn $ "Spawning process: " ++ processName
                         forkIO $ do
-                            _ <- runEval $ execStmts environment stmts
+                            _ <- runEval sharedState $ execStmts environment stmts
                             putStrLn $ "Process " ++ processName ++ " terminated"
                             return ()
                         return ()
@@ -215,14 +237,8 @@ execStmt env stmt = liftIO $ (execStmt' env stmt) `catch` \(e :: SomeException) 
                     liftIO $ putStrLn "Error: All resource expressions must evaluate to strings"
                     return environment
                 else do
-                    globalState <- get
-                    
-                    -- Look up actual TMVar resources
-                    let maybeResources = map (\name -> 
-                            case Map.lookup name (globalResources globalState) of
-                                Just tmvar -> Just tmvar
-                                Nothing -> Nothing
-                            ) resourceNames
+                    -- Look up actual TMVar resources from global state
+                    maybeResources <- mapM lookupGlobalResource resourceNames
                     
                     case sequence maybeResources of
                         Just resources -> do
@@ -234,10 +250,10 @@ execStmt env stmt = liftIO $ (execStmt' env stmt) `catch` \(e :: SomeException) 
                             let newBindings = Map.fromList $ zip varNames resourceValues
                             let newEnv = Map.union newBindings environment
                             
-                            liftIO $ putStrLn $ "Locked resources: " ++ show resourceNames
+                            liftIO $ putStrLn $ "Locked resources: " ++ show resourceNames ++ " as variables: " ++ show varNames
                             return newEnv
                         Nothing -> do
-                            liftIO $ putStrLn $ "Error: Some resources not found: " ++ show resourceNames
+                            liftIO $ putStrLn $ "Error: Some resources not found in global state: " ++ show resourceNames
                             return environment
         
         UnlockAll resources -> do
@@ -281,12 +297,14 @@ execProgram (Program stmts) = do
     _ <- execStmts Map.empty stmts
     liftIO $ putStrLn "=== Main program execution completed ==="
     -- Keep main thread alive to let spawned processes run
-    liftIO $ threadDelay 3000000 -- 3 seconds
+    liftIO $ threadDelay 5000000 -- 5 seconds
     return ()
 
 -- Convenience function to run a program
 runProgram :: Program -> IO ()
-runProgram program = runEval $ execProgram program
+runProgram program = do
+    sharedState <- newTVarIO initialState
+    runEval sharedState $ execProgram program
 
 -- Debug function to print current environment
 printEnv :: Environment -> IO ()
@@ -297,7 +315,8 @@ printEnv env = do
 -- Helper function to evaluate and print expressions (for testing)
 evalAndPrint :: String -> Expr -> IO ()
 evalAndPrint description expr = do
-    result <- runEval $ evalExpr Map.empty expr
+    sharedState <- newTVarIO initialState
+    result <- runEval sharedState $ evalExpr Map.empty expr
     putStrLn $ description ++ ": " ++ show result
 
 -- Test the evaluator with simple expressions
@@ -332,3 +351,4 @@ testEvaluator = do
             ]
     
     runProgram simpleProgram
+

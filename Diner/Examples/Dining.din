@@ -12,13 +12,15 @@ foreach 0 to 4 as i {
 
 // Create philosophers
 foreach 0 to 4 as i {
-  // Define left and right fork indices (with deadlock prevention)
-  let leftFork = "fork" ++ i;
-  let rightFork = "fork" ++ (i + 1) % numPhils;
-  
+ 
   // Spawn philosopher process
   spawn "philosopher" ++ i {
+      // Define left and right fork indices (with deadlock prevention)
+    let leftFork = "fork" ++ i;
+    let rightFork = "fork" ++ ( (i + 1) % numPhils );
+ 
     loop {
+
       // Think for a random time
       print "Philosopher " ++ i ++ " thinking";
       think (rand 100 500);
