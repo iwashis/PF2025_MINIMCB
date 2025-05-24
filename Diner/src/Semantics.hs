@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Semantics where
 
@@ -10,6 +11,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.List (intercalate, sort)
 import Parser
 import System.Random
 import Text.Read (readMaybe)
@@ -66,6 +68,26 @@ initialState = GlobalState Map.empty 0 Map.empty
 -- Run the evaluator with shared state
 runEval :: SharedGlobalState -> EvalM a -> IO a
 runEval sharedState action = runReaderT action sharedState
+
+-- Get current resource status as a formatted string with real-time lock checking
+getResourceStatusString :: EvalM String
+getResourceStatusString = do
+    sharedState <- ask
+    globalState <- liftIO $ readTVarIO sharedState
+    let resourceMap = globalResources globalState
+    
+    -- Check actual TMVar states for each resource
+    statusList <- liftIO $ mapM checkResourceStatus (Map.toList resourceMap)
+    let sortedStates = sort statusList
+    
+    return $ if null sortedStates 
+             then "Resources: []"
+             else "Resources: [" ++ intercalate ", " sortedStates ++ "]"
+  where
+    checkResourceStatus (name, tmvar) = do
+        -- Try to read the TMVar without blocking to check if it's available
+        isEmpty <- atomically $ isEmptyTMVar tmvar
+        return $ name ++ ":" ++ (if isEmpty then "🔒" else "✅")
 
 -- Expression evaluation with better error handling
 evalExpr :: Environment -> Expr -> EvalM Value
@@ -177,13 +199,14 @@ getThreadColor = do
 
             return nextColor
 
--- Colored print function
+-- Enhanced colored print function with resource monitoring
 colorPrint :: String -> EvalM ()
 colorPrint msg = do
     tid <- liftIO myThreadId
     color <- getThreadColor
+    resourceStatus <- getResourceStatusString
     let tidStr = take 8 $ show tid -- Truncate thread ID for readability
-    liftIO $ putStrLn $ colorCode color ++ "[" ++ tidStr ++ "] " ++ msg ++ resetCode
+    liftIO $ putStrLn $ colorCode color ++ "[" ++ tidStr ++ "] " ++ msg ++ resetCode ++ " | " ++ resourceStatus
 
 -- Statement execution with improved error handling
 execStmt :: Environment -> Statement -> EvalM Environment
@@ -233,7 +256,9 @@ execStmt' environment statement = case statement of
         case val of
             VString name -> do
                 resource <- liftIO $ newTMVarIO ()
-                updateGlobalState $ \s -> s{globalResources = Map.insert name resource (globalResources s)}
+                updateGlobalState $ \s -> s { 
+                    globalResources = Map.insert name resource (globalResources s)
+                }
                 colorPrint $ "Declared resource: " ++ name
                 return environment
             _ -> do
@@ -286,7 +311,7 @@ execStmt' environment statement = case statement of
                         let newBindings = Map.fromList $ zip varNames resourceValues
                         let newEnv = Map.union newBindings environment
 
-                        colorPrint $ "Locked resources: " ++ show resourceNames ++ " as variables: " ++ show varNames
+                        colorPrint $ "Locked resources: " ++ show resourceNames -- ++ " as variables: " ++ show varNames
                         return newEnv
                     Nothing -> do
                         colorPrint $ "Error: Some resources not found in global state: " ++ show resourceNames
@@ -299,7 +324,9 @@ execStmt' environment statement = case statement of
         case sequence maybeResources of
             Just tmvars -> do
                 liftIO $ atomically $ mapM_ (`putTMVar` ()) tmvars
-                colorPrint $ "Unlocked resources: " ++ show resourceNames
+                actualResourceNames <- mapM getActualResourceName resourceNames
+                colorPrint $ "Unlocked resources: " ++ show actualResourceNames
+                -- colorPrint $ "Unlocked resources: " ++ show resourceNames
                 return environment
             Nothing -> do
                 colorPrint $ "Error: Some resources not found in environment: " ++ show resourceNames
@@ -320,6 +347,17 @@ execStmt' environment statement = case statement of
         if valueToBool condVal
             then execStmts environment thenStmts
             else execStmts environment elseStmts
+    where 
+      getActualResourceName varName = do
+        -- Look through global resources to find which one matches this TMVar
+        sharedState <- ask
+        globalState <- liftIO $ readTVarIO sharedState
+        case lookupResource varName environment of
+            Just tmvar -> 
+                case [name | (name, res) <- Map.toList (globalResources globalState), res == tmvar] of
+                    (actualName:_) -> return actualName
+                    [] -> return varName -- fallback
+            Nothing -> return varName -- fallback
 
 -- Execute a list of statements
 execStmts :: Environment -> [Statement] -> EvalM Environment
