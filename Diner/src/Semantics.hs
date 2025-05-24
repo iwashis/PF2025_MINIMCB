@@ -2,15 +2,15 @@
 
 module Semantics where
 
-import Parser
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Exception (SomeException, catch)
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Reader
-import Control.Exception (catch, SomeException)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Parser
 import System.Random
 import Text.Read (readMaybe)
 
@@ -18,7 +18,7 @@ import Text.Read (readMaybe)
 data Value
     = VInt Int
     | VString String
-    | VResource (TMVar ())  -- STM transactional variable for resource locking
+    | VResource (TMVar ()) -- STM transactional variable for resource locking
     deriving (Eq)
 
 instance Show Value where
@@ -34,13 +34,13 @@ data ThreadColor = Red | Green | Yellow | Blue | Magenta | Cyan | White
     deriving (Eq, Show, Enum, Bounded)
 
 colorCode :: ThreadColor -> String
-colorCode Red     = "\ESC[31m"
-colorCode Green   = "\ESC[32m"
-colorCode Yellow  = "\ESC[33m"
-colorCode Blue    = "\ESC[34m"
+colorCode Red = "\ESC[31m"
+colorCode Green = "\ESC[32m"
+colorCode Yellow = "\ESC[33m"
+colorCode Blue = "\ESC[34m"
 colorCode Magenta = "\ESC[35m"
-colorCode Cyan    = "\ESC[36m"
-colorCode White   = "\ESC[37m"
+colorCode Cyan = "\ESC[36m"
+colorCode White = "\ESC[37m"
 
 resetCode :: String
 resetCode = "\ESC[0m"
@@ -50,7 +50,8 @@ data GlobalState = GlobalState
     { globalResources :: Map String (TMVar ())
     , processCounter :: Int
     , threadColors :: Map ThreadId ThreadColor
-    } deriving (Eq)
+    }
+    deriving (Eq)
 
 -- Shared global state
 type SharedGlobalState = TVar GlobalState
@@ -69,22 +70,18 @@ runEval sharedState action = runReaderT action sharedState
 -- Expression evaluation with better error handling
 evalExpr :: Environment -> Expr -> EvalM Value
 evalExpr env expr = case expr of
-    Var name -> 
+    Var name ->
         case Map.lookup name env of
             Just val -> return val
             Nothing -> liftIO $ do
                 putStrLn $ "Error: Undefined variable: " ++ name
                 return $ VString ("<undefined:" ++ name ++ ">")
-    
     StringLit s -> return $ VString s
-    
     IntLit n -> return $ VInt n
-    
     Concat e1 e2 -> do
         v1 <- evalExpr env e1
         v2 <- evalExpr env e2
         return $ VString (valueToString v1 ++ valueToString v2)
-    
     Rand e1 e2 -> do
         v1 <- evalExpr env e1
         v2 <- evalExpr env e2
@@ -96,7 +93,6 @@ evalExpr env expr = case expr of
             _ -> liftIO $ do
                 putStrLn "Error: rand requires integer arguments"
                 return $ VInt 0
-    
     Add e1 e2 -> do
         v1 <- evalExpr env e1
         v2 <- evalExpr env e2
@@ -105,7 +101,6 @@ evalExpr env expr = case expr of
             _ -> liftIO $ do
                 putStrLn "Error: + requires integer operands"
                 return $ VInt 0
-    
     Sub e1 e2 -> do
         v1 <- evalExpr env e1
         v2 <- evalExpr env e2
@@ -114,7 +109,6 @@ evalExpr env expr = case expr of
             _ -> liftIO $ do
                 putStrLn "Error: - requires integer operands"
                 return $ VInt 0
-    
     Mod e1 e2 -> do
         v1 <- evalExpr env e1
         v2 <- evalExpr env e2
@@ -152,6 +146,7 @@ updateGlobalState :: (GlobalState -> GlobalState) -> EvalM ()
 updateGlobalState f = do
     sharedState <- ask
     liftIO $ atomically $ modifyTVar sharedState f
+
 -- Safe resource lookup in global state
 lookupGlobalResource :: String -> EvalM (Maybe (TMVar ()))
 lookupGlobalResource name = do
@@ -165,7 +160,7 @@ getThreadColor = do
     tid <- liftIO myThreadId
     sharedState <- ask
     globalState <- liftIO $ readTVarIO sharedState
-    
+
     case Map.lookup tid (threadColors globalState) of
         Just color -> return color
         Nothing -> do
@@ -173,13 +168,13 @@ getThreadColor = do
             let availableColors = [Red, Green, Yellow, Blue, Magenta, Cyan, White]
             let usedColors = Map.elems (threadColors globalState)
             let nextColor = case filter (`notElem` usedColors) availableColors of
-                    (c:_) -> c
-                    []    -> availableColors !! (Map.size (threadColors globalState) `mod` length availableColors)
-            
+                    (c : _) -> c
+                    [] -> availableColors !! (Map.size (threadColors globalState) `mod` length availableColors)
+
             -- Update global state with new color assignment
-            liftIO $ atomically $ modifyTVar sharedState $ \s -> 
-                s { threadColors = Map.insert tid nextColor (threadColors s) }
-            
+            liftIO $ atomically $ modifyTVar sharedState $ \s ->
+                s{threadColors = Map.insert tid nextColor (threadColors s)}
+
             return nextColor
 
 -- Colored print function
@@ -194,142 +189,137 @@ colorPrint msg = do
 execStmt :: Environment -> Statement -> EvalM Environment
 execStmt env stmt = do
     sharedState <- ask
-    result <- liftIO $ (runEval sharedState $ execStmt' env stmt) `catch` \(e :: SomeException) -> do
-        putStrLn $ "Runtime error: " ++ show e
-        return env
+    result <-
+        liftIO $
+            (runEval sharedState $ execStmt' env stmt) `catch` \(e :: SomeException) -> do
+                putStrLn $ "Runtime error: " ++ show e
+                return env
     return result
 
 execStmt' :: Environment -> Statement -> EvalM Environment
 execStmt' environment statement = case statement of
-        Think expr -> do
-            val <- evalExpr environment expr
-            case val of
-                VInt duration -> do
-                    colorPrint $ "Thinking for " ++ show duration ++ " time units"
-                    liftIO $ threadDelay (duration * 1000) -- Convert to microseconds
-                    return environment
-                _ -> do
-                    colorPrint "Error: think requires integer argument"
-                    return environment
-        
-        Eat expr (Resource r1Name) (Resource r2Name) -> do
-            val <- evalExpr environment expr
-            case val of
-                VInt duration -> do
-                    -- Look up resources in environment (they should be bound variables)
-                    case (lookupResource r1Name environment, lookupResource r2Name environment) of
-                        (Just _, Just _) -> do
-                            colorPrint $ "Eating for " ++ show duration ++ " time units using resources " ++ r1Name ++ " and " ++ r2Name
-                            liftIO $ threadDelay (duration * 1000)
-                            return environment
-                        _ -> do
-                            colorPrint $ "Error: Resources not found in environment: " ++ r1Name ++ ", " ++ r2Name
-                            return environment
-                _ -> do
-                    colorPrint "Error: eat requires integer duration"
-                    return environment
-        
-        PrintExpr expr -> do
-            val <- evalExpr environment expr
-            colorPrint $ valueToString val
-            return environment
-        
-        DeclareResource expr -> do
-            val <- evalExpr environment expr
-            case val of
-                VString name -> do
-                    resource <- liftIO $ newTMVarIO ()
-                    updateGlobalState $ \s -> s { globalResources = Map.insert name resource (globalResources s) }
-                    colorPrint $ "Declared resource: " ++ name
-                    return environment
-                _ -> do
-                    colorPrint "Error: declareResource requires string argument"
-                    return environment
-        
-        Loop stmts -> do
-            sharedState <- ask
-            liftIO $ forkIO $ runLoop sharedState environment stmts
-            return environment
-          where
-            runLoop shared env statements = do
-                newEnv <- runEval shared $ execStmts env statements
-                runLoop shared newEnv statements
-        
-        Spawn expr stmts -> do
-            val <- evalExpr environment expr
-            case val of
-                VString processName -> do
-                    sharedState <- ask
-                    colorPrint $ "Spawning process: " ++ processName
-                    liftIO $ do
-                        forkIO $ do
-                            _ <- runEval sharedState $ execStmts environment stmts
-                            -- runEval sharedState $ colorPrint $ "Process " ++ processName ++ " terminated"
-                            return ()
+    Think expr -> do
+        val <- evalExpr environment expr
+        case val of
+            VInt duration -> do
+                colorPrint $ "Thinking for " ++ show duration ++ " time units"
+                liftIO $ threadDelay (duration * 1000) -- Convert to microseconds
+                return environment
+            _ -> do
+                colorPrint "Error: think requires integer argument"
+                return environment
+    Eat expr (Resource r1Name) (Resource r2Name) -> do
+        val <- evalExpr environment expr
+        case val of
+            VInt duration -> do
+                -- Look up resources in environment (they should be bound variables)
+                case (lookupResource r1Name environment, lookupResource r2Name environment) of
+                    (Just _, Just _) -> do
+                        colorPrint $ "Eating for " ++ show duration ++ " time units using resources " ++ r1Name ++ " and " ++ r2Name
+                        liftIO $ threadDelay (duration * 1000)
+                        return environment
+                    _ -> do
+                        colorPrint $ "Error: Resources not found in environment: " ++ r1Name ++ ", " ++ r2Name
+                        return environment
+            _ -> do
+                colorPrint "Error: eat requires integer duration"
+                return environment
+    PrintExpr expr -> do
+        val <- evalExpr environment expr
+        colorPrint $ valueToString val
+        return environment
+    DeclareResource expr -> do
+        val <- evalExpr environment expr
+        case val of
+            VString name -> do
+                resource <- liftIO $ newTMVarIO ()
+                updateGlobalState $ \s -> s{globalResources = Map.insert name resource (globalResources s)}
+                colorPrint $ "Declared resource: " ++ name
+                return environment
+            _ -> do
+                colorPrint "Error: declareResource requires string argument"
+                return environment
+    Loop stmts -> do
+        sharedState <- ask
+        liftIO $ forkIO $ runLoop sharedState environment stmts
+        return environment
+      where
+        runLoop shared env statements = do
+            newEnv <- runEval shared $ execStmts env statements
+            runLoop shared newEnv statements
+    Spawn expr stmts -> do
+        val <- evalExpr environment expr
+        case val of
+            VString processName -> do
+                sharedState <- ask
+                colorPrint $ "Spawning process: " ++ processName
+                liftIO $ do
+                    forkIO $ do
+                        _ <- runEval sharedState $ execStmts environment stmts
+                        -- runEval sharedState $ colorPrint $ "Process " ++ processName ++ " terminated"
                         return ()
-                    return environment
-                _ -> do
-                    colorPrint "Error: spawn requires string process name"
-                    return environment
-        
-        LockAll exprs varNames -> do
-            -- Evaluate resource expressions to get resource names
-            vals <- mapM (evalExpr environment) exprs
-            let resourceNames = [name | VString name <- vals]
-            
-            if length resourceNames /= length vals
-                then do
-                    colorPrint "Error: All resource expressions must evaluate to strings"
-                    return environment
-                else do
-                    -- Look up actual TMVar resources from global state
-                    maybeResources <- mapM lookupGlobalResource resourceNames
-                    
-                    case sequence maybeResources of
-                        Just resources -> do
-                            -- Atomically acquire all resources
-                            liftIO $ atomically $ mapM_ takeTMVar resources
-                            
-                            -- Bind resources to variable names in environment
-                            let resourceValues = map VResource resources
-                            let newBindings = Map.fromList $ zip varNames resourceValues
-                            let newEnv = Map.union newBindings environment
-                            
-                            colorPrint $ "Locked resources: " ++ show resourceNames ++ " as variables: " ++ show varNames
-                            return newEnv
-                        Nothing -> do
-                            colorPrint $ "Error: Some resources not found in global state: " ++ show resourceNames
-                            return environment
-        
-        UnlockAll resources -> do
-            -- Look up resource TMVars in environment and release them
-            let resourceNames = [name | Resource name <- resources]
-            let maybeResources = map (\name -> lookupResource name environment) resourceNames
-            
-            case sequence maybeResources of
-                Just tmvars -> do
-                    liftIO $ atomically $ mapM_ (`putTMVar` ()) tmvars
-                    colorPrint $ "Unlocked resources: " ++ show resourceNames
-                    return environment
-                Nothing -> do
-                    colorPrint $ "Error: Some resources not found in environment: " ++ show resourceNames
-                    return environment
-        
-        Let varName expr -> do
-            val <- evalExpr environment expr
-            return $ Map.insert varName val environment
-        
-        ForEach start end varName stmts -> do
-            foldM (\currentEnv i -> do
+                    return ()
+                return environment
+            _ -> do
+                colorPrint "Error: spawn requires string process name"
+                return environment
+    LockAll exprs varNames -> do
+        -- Evaluate resource expressions to get resource names
+        vals <- mapM (evalExpr environment) exprs
+        let resourceNames = [name | VString name <- vals]
+
+        if length resourceNames /= length vals
+            then do
+                colorPrint "Error: All resource expressions must evaluate to strings"
+                return environment
+            else do
+                -- Look up actual TMVar resources from global state
+                maybeResources <- mapM lookupGlobalResource resourceNames
+
+                case sequence maybeResources of
+                    Just resources -> do
+                        -- Atomically acquire all resources
+                        liftIO $ atomically $ mapM_ takeTMVar resources
+
+                        -- Bind resources to variable names in environment
+                        let resourceValues = map VResource resources
+                        let newBindings = Map.fromList $ zip varNames resourceValues
+                        let newEnv = Map.union newBindings environment
+
+                        colorPrint $ "Locked resources: " ++ show resourceNames ++ " as variables: " ++ show varNames
+                        return newEnv
+                    Nothing -> do
+                        colorPrint $ "Error: Some resources not found in global state: " ++ show resourceNames
+                        return environment
+    UnlockAll resources -> do
+        -- Look up resource TMVars in environment and release them
+        let resourceNames = [name | Resource name <- resources]
+        let maybeResources = map (\name -> lookupResource name environment) resourceNames
+
+        case sequence maybeResources of
+            Just tmvars -> do
+                liftIO $ atomically $ mapM_ (`putTMVar` ()) tmvars
+                colorPrint $ "Unlocked resources: " ++ show resourceNames
+                return environment
+            Nothing -> do
+                colorPrint $ "Error: Some resources not found in environment: " ++ show resourceNames
+                return environment
+    Let varName expr -> do
+        val <- evalExpr environment expr
+        return $ Map.insert varName val environment
+    ForEach start end varName stmts -> do
+        foldM
+            ( \currentEnv i -> do
                 let loopEnv = Map.insert varName (VInt i) currentEnv
                 execStmts loopEnv stmts
-              ) environment [start..end]
-        
-        If condExpr thenStmts elseStmts -> do
-            condVal <- evalExpr environment condExpr
-            if valueToBool condVal
-                then execStmts environment thenStmts
-                else execStmts environment elseStmts
+            )
+            environment
+            [start .. end]
+    If condExpr thenStmts elseStmts -> do
+        condVal <- evalExpr environment condExpr
+        if valueToBool condVal
+            then execStmts environment thenStmts
+            else execStmts environment elseStmts
 
 -- Execute a list of statements
 execStmts :: Environment -> [Statement] -> EvalM Environment
@@ -368,7 +358,7 @@ evalAndPrint description expr = do
 testEvaluator :: IO ()
 testEvaluator = do
     putStrLn "=== Testing Expression Evaluator ==="
-    
+
     -- Test basic expressions
     evalAndPrint "Integer literal" (IntLit 42)
     evalAndPrint "String literal" (StringLit "Hello")
@@ -376,24 +366,24 @@ testEvaluator = do
     evalAndPrint "Subtraction" (Sub (IntLit 10) (IntLit 3))
     evalAndPrint "Modulo" (Mod (IntLit 10) (IntLit 3))
     evalAndPrint "String concatenation" (Concat (StringLit "Hello ") (StringLit "World"))
-    
+
     -- Test random (will vary each run)
     putStrLn "\nTesting random expressions (results will vary):"
     evalAndPrint "Random 1-10" (Rand (IntLit 1) (IntLit 10))
     evalAndPrint "Random 1-10" (Rand (IntLit 1) (IntLit 10))
     evalAndPrint "Random 1-10" (Rand (IntLit 1) (IntLit 10))
-    
-    putStrLn "\n=== Testing Simple Program Execution ==="
-    
-    -- Test simple program
-    let simpleProgram = Program 
-            [ Let "x" (IntLit 10)
-            , Let "y" (IntLit 20)  
-            , Let "sum" (Add (Var "x") (Var "y"))
-            , PrintExpr (Var "sum")
-            , Think (IntLit 100)
-            , PrintExpr (Concat (StringLit "The sum is: ") (Var "sum"))
-            ]
-    
-    runProgram simpleProgram
 
+    putStrLn "\n=== Testing Simple Program Execution ==="
+
+    -- Test simple program
+    let simpleProgram =
+            Program
+                [ Let "x" (IntLit 10)
+                , Let "y" (IntLit 20)
+                , Let "sum" (Add (Var "x") (Var "y"))
+                , PrintExpr (Var "sum")
+                , Think (IntLit 100)
+                , PrintExpr (Concat (StringLit "The sum is: ") (Var "sum"))
+                ]
+
+    runProgram simpleProgram
