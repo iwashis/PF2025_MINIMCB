@@ -264,7 +264,7 @@ execStmt' environment statement = case statement of
                     liftIO $ do
                         forkIO $ do
                             _ <- runEval sharedState $ execStmts environment stmts
-                            runEval sharedState $ colorPrint $ "Process " ++ processName ++ " terminated"
+                            -- runEval sharedState $ colorPrint $ "Process " ++ processName ++ " terminated"
                             return ()
                         return ()
                     return environment
