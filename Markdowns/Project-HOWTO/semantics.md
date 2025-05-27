@@ -847,7 +847,9 @@ Each operation checks that its operands have the correct types. If not, we print
 
 ## Implementing Statement Execution
 
-Statement execution is where the real concurrency magic happens:
+Statement execution is where the real concurrency magic happens. Let's continue the implementation:
+
+### Complete Statement Execution Implementation
 
 ```haskell
 -- Safe resource lookup in environment
@@ -867,42 +869,385 @@ execStmt env stmt = do
 
 execStmt' :: Environment -> Statement -> EvalM Environment
 execStmt' environment statement = case statement of
-        -- ... we'll implement each statement type
+    Think expr -> do
+        val <- evalExpr environment expr
+        case val of
+            VInt duration -> do
+                colorPrint $ "Thinking for " ++ show duration ++ " time units"
+                liftIO $ threadDelay (duration * 1000) -- Convert to microseconds
+                return environment
+            _ -> do
+                colorPrint "Error: think requires integer argument"
+                return environment
+                
+    Eat expr (Resource r1Name) (Resource r2Name) -> do
+        val <- evalExpr environment expr
+        case val of
+            VInt duration -> do
+                -- Look up resources in environment (they should be bound variables)
+                case (lookupResource r1Name environment, lookupResource r2Name environment) of
+                    (Just _, Just _) -> do
+                        colorPrint $ "Eating for " ++ show duration ++ " time units using resources " ++ r1Name ++ " and " ++ r2Name
+                        liftIO $ threadDelay (duration * 1000)
+                        return environment
+                    _ -> do
+                        colorPrint $ "Error: Resources not found in environment: " ++ r1Name ++ ", " ++ r2Name
+                        return environment
+            _ -> do
+                colorPrint "Error: eat requires integer duration"
+                return environment
+                
+    PrintExpr expr -> do
+        val <- evalExpr environment expr
+        colorPrint $ valueToString val
+        return environment
+        
+    DeclareResource expr -> do
+        val <- evalExpr environment expr
+        case val of
+            VString name -> do
+                resource <- liftIO $ newTMVarIO ()
+                updateGlobalState $ \s -> s { 
+                    globalResources = Map.insert name resource (globalResources s)
+                }
+                colorPrint $ "Declared resource: " ++ name
+                return environment
+            _ -> do
+                colorPrint "Error: declareResource requires string argument"
+                return environment
+                
+    Loop stmts -> do
+        sharedState <- ask
+        liftIO $ forkIO $ runLoop sharedState environment stmts
+        return environment
+      where
+        runLoop shared env statements = do
+            newEnv <- runEval shared $ execStmts env statements
+            runLoop shared newEnv statements
+            
+    Spawn expr stmts -> do
+        val <- evalExpr environment expr
+        case val of
+            VString processName -> do
+                sharedState <- ask
+                colorPrint $ "Spawning process: " ++ processName
+                liftIO $ do
+                    forkIO $ do
+                        _ <- runEval sharedState $ execStmts environment stmts
+                        return ()
+                    return ()
+                return environment
+            _ -> do
+                colorPrint "Error: spawn requires string process name"
+                return environment
+                
+    LockAll exprs varNames -> do
+        -- Evaluate resource expressions to get resource names
+        vals <- mapM (evalExpr environment) exprs
+        let resourceNames = [name | VString name <- vals]
+
+        if length resourceNames /= length vals
+            then do
+                colorPrint "Error: All resource expressions must evaluate to strings"
+                return environment
+            else do
+                -- Look up actual TMVar resources from global state
+                maybeResources <- mapM lookupGlobalResource resourceNames
+
+                case sequence maybeResources of
+                    Just resources -> do
+                        -- Atomically acquire all resources
+                        liftIO $ atomically $ mapM_ takeTMVar resources
+
+                        -- Bind resources to variable names in environment
+                        let resourceValues = map VResource resources
+                        let newBindings = Map.fromList $ zip varNames resourceValues
+                        let newEnv = Map.union newBindings environment
+
+                        colorPrint $ "Locked resources: " ++ show resourceNames
+                        return newEnv
+                    Nothing -> do
+                        colorPrint $ "Error: Some resources not found in global state: " ++ show resourceNames
+                        return environment
+                        
+    UnlockAll resources -> do
+        -- Look up resource TMVars in environment and release them
+        let resourceNames = [name | Resource name <- resources]
+        let maybeResources = map (\name -> lookupResource name environment) resourceNames
+
+        case sequence maybeResources of
+            Just tmvars -> do
+                liftIO $ atomically $ mapM_ (`putTMVar` ()) tmvars
+                actualResourceNames <- mapM getActualResourceName resourceNames
+                colorPrint $ "Unlocked resources: " ++ show actualResourceNames
+                return environment
+            Nothing -> do
+                colorPrint $ "Error: Some resources not found in environment: " ++ show resourceNames
+                return environment
+                
+    Let varName expr -> do
+        val <- evalExpr environment expr
+        return $ Map.insert varName val environment
+        
+    ForEach start end varName stmts -> do
+        foldM
+            ( \currentEnv i -> do
+                let loopEnv = Map.insert varName (VInt i) currentEnv
+                execStmts loopEnv stmts
+            )
+            environment
+            [start .. end]
+            
+    If condExpr thenStmts elseStmts -> do
+        condVal <- evalExpr environment condExpr
+        if valueToBool condVal
+            then execStmts environment thenStmts
+            else execStmts environment elseStmts
+    where 
+      getActualResourceName varName = do
+        -- Look through global resources to find which one matches this TMVar
+        sharedState <- ask
+        globalState <- liftIO $ readTVarIO sharedState
+        case lookupResource varName environment of
+            Just tmvar -> 
+                case [name | (name, res) <- Map.toList (globalResources globalState), res == tmvar] of
+                    (actualName:_) -> return actualName
+                    [] -> return varName -- fallback
+            Nothing -> return varName -- fallback
+
+-- Execute a list of statements
+execStmts :: Environment -> [Statement] -> EvalM Environment
+execStmts = foldM execStmt
+
+-- Execute a complete program
+execProgram :: Program -> EvalM ()
+execProgram (Program stmts) = do
+    liftIO $ putStrLn "=== Starting program execution ==="
+    _ <- execStmts Map.empty stmts
+    liftIO $ putStrLn "=== Main program execution completed ==="
+    -- Keep main thread alive to let spawned processes run
+    liftIO $ threadDelay 5000000 -- 5 seconds
+    return ()
+
+-- Convenience function to run a program
+runProgram :: Program -> IO ()
+runProgram program = do
+    sharedState <- newTVarIO initialState
+    runEval sharedState $ execProgram program
 ```
 
-Let's implement each statement type, focusing on the STM aspects:
+### Understanding the Critical STM Operations
 
-### Think Statement
+Now let's dive deep into the most important parts of our implementation - the STM operations that make concurrent resource management safe and deadlock-free.
+
+#### The LockAll Statement: Atomic Resource Acquisition
+
+The `LockAll` statement is the heart of our dining philosophers solution:
+
 ```haskell
-Think expr -> do
-    val <- evalExpr environment expr
-    case val of
-        VInt duration -> do
-            colorPrint $ "Thinking for " ++ show duration ++ " time units"
-            liftIO $ threadDelay (duration * 1000) -- Convert to microseconds
-            return environment
-        _ -> do
-            colorPrint "Error: think requires integer argument"
+LockAll exprs varNames -> do
+    -- 1. Evaluate resource expressions to get resource names
+    vals <- mapM (evalExpr environment) exprs
+    let resourceNames = [name | VString name <- vals]
+
+    -- 2. Look up actual TMVar resources from global state
+    maybeResources <- mapM lookupGlobalResource resourceNames
+
+    case sequence maybeResources of
+        Just resources -> do
+            -- 3. THE CRITICAL PART: Atomically acquire all resources
+            liftIO $ atomically $ mapM_ takeTMVar resources
+
+            -- 4. Bind resources to variable names in environment
+            let resourceValues = map VResource resources
+            let newBindings = Map.fromList $ zip varNames resourceValues
+            let newEnv = Map.union newBindings environment
+
+            colorPrint $ "Locked resources: " ++ show resourceNames
+            return newEnv
+        Nothing -> do
+            colorPrint $ "Error: Some resources not found"
             return environment
 ```
 
-The `think` statement simulates a philosopher thinking. It's straightforward - evaluate the duration expression and delay for that amount of time.
+**Why This Prevents Deadlock:**
 
-### Eat Statement
+1. **All-or-Nothing**: The `atomically $ mapM_ takeTMVar resources` either acquires ALL resources or NONE
+2. **No Partial State**: A philosopher can never hold just one fork while waiting for another
+3. **Automatic Retry**: If any fork is unavailable, STM automatically retries the entire transaction
+4. **Composable**: Multiple `takeTMVar` operations compose into a single atomic transaction
+
+**Traditional Deadlock Scenario (PREVENTED):**
 ```haskell
-Eat expr (Resource r1Name) (Resource r2Name) -> do
-    val <- evalExpr environment expr
-    case val of
-        VInt duration -> do
-            -- Look up resources in environment (they should be bound variables)
-            case (lookupResource r1Name environment, lookupResource r2Name environment) of
-                (Just _, Just _) -> do
-                    colorPrint $ "Eating for " ++ show duration ++ " time units using resources " ++ r1Name ++ " and " ++ r2Name
-                    liftIO $ threadDelay (duration * 1000)
-                    return environment
-                _ -> do
-                    colorPrint $ "Error: Resources not found in environment: " ++ r1Name ++ ", " ++ r2Name
-                    return environment
-        _ -> do
-            colorPrint "Error: eat requires integer duration"
+-- This CAN'T happen with our STM implementation:
+-- Philosopher 1: Takes fork 1, waits for fork 2
+-- Philosopher 2: Takes fork 2, waits for fork 3
+-- Philosopher 3: Takes fork 3, waits for fork 4
+-- Philosopher 4: Takes fork 4, waits for fork 5
+-- Philosopher 5: Takes fork 5, waits for fork 1
+-- = DEADLOCK!
+
+-- With STM, each philosopher either gets BOTH forks atomically or waits
+```
+
+#### The UnlockAll Statement: Safe Resource Release
+
+```haskell
+UnlockAll resources -> do
+    let resourceNames = [name | Resource name <- resources]
+    let maybeResources = map (\name -> lookupResource name environment) resourceNames
+
+    case sequence maybeResources of
+        Just tmvars -> do
+            -- Atomically release all resources
+            liftIO $ atomically $ mapM_ (`putTMVar` ()) tmvars
+            colorPrint $ "Unlocked resources: " ++ show actualResourceNames
             return environment
+```
+
+**Key Points:**
+1. **Atomic Release**: All resources are released in a single transaction
+2. **Wake Up Waiters**: When forks are released, STM automatically wakes up waiting philosophers
+3. **Exception Safety**: If an exception occurs, the transaction rolls back automatically
+
+#### Resource State Monitoring
+
+Our implementation includes real-time resource monitoring to help visualize the system state:
+
+```haskell
+-- Get current resource status as a formatted string with real-time lock checking
+getResourceStatusString :: EvalM String
+getResourceStatusString = do
+    sharedState <- ask
+    globalState <- liftIO $ readTVarIO sharedState
+    let resourceMap = globalResources globalState
+    
+    -- Check actual TMVar states for each resource
+    statusList <- liftIO $ mapM checkResourceStatus (Map.toList resourceMap)
+    let sortedStates = sort statusList
+    
+    return $ if null sortedStates 
+             then "Resources: []"
+             else "Resources: [" ++ intercalate ", " sortedStates ++ "]"
+  where
+    checkResourceStatus (name, tmvar) = do
+        -- Try to read the TMVar without blocking to check if it's available
+        isEmpty <- atomically $ isEmptyTMVar tmvar
+        return $ name ++ ":" ++ (if isEmpty then "🔒" else "✅")
+```
+
+This provides real-time visualization of which resources are locked (🔒) or available (✅).
+
+## Advanced STM Patterns for Resource Management
+
+### Pattern 1: Conditional Resource Acquisition
+
+Sometimes philosophers might want to try acquiring resources with a timeout:
+
+```haskell
+-- Try to acquire resources with a timeout
+tryLockAllWithTimeout :: [TMVar ()] -> Int -> STM (Maybe [TMVar ()])
+tryLockAllWithTimeout resources timeoutMicros = do
+    -- This would require additional STM combinators
+    -- For now, we use the simpler blocking approach
+    mapM takeTMVar resources >>= return . Just
+```
+
+### Pattern 2: Priority-Based Resource Allocation
+
+We could extend our system to give priority to certain philosophers:
+
+```haskell
+data PhilosopherPriority = High | Normal | Low
+
+-- In a more advanced version, we could use TBQueues for priority scheduling
+priorityAcquire :: PhilosopherPriority -> [TMVar ()] -> STM ()
+priorityAcquire priority resources = do
+    -- Implementation would depend on priority queues
+    mapM_ takeTMVar resources
+```
+
+### Pattern 3: Resource Pool Management
+
+For larger systems, we might want resource pools:
+
+```haskell
+data ResourcePool = ResourcePool
+    { available :: TVar [TMVar ()]
+    , inUse :: TVar [TMVar ()]
+    }
+
+acquireFromPool :: ResourcePool -> Int -> STM [TMVar ()]
+acquireFromPool pool count = do
+    avail <- readTVar (available pool)
+    if length avail >= count
+        then do
+            let (taken, remaining) = splitAt count avail
+            writeTVar (available pool) remaining
+            modifyTVar (inUse pool) (taken ++)
+            return taken
+        else retry
+```
+
+### Understanding the Solution
+
+Our dining philosophers solution works because:
+
+1. **Atomic Fork Acquisition**: Each philosopher acquires BOTH forks in a single atomic transaction
+2. **No Partial States**: A philosopher never holds just one fork
+3. **Automatic Retry**: If forks aren't available, STM automatically retries when they become free
+4. **No Lock Ordering**: We don't need to worry about acquiring forks in a specific order
+5. **Exception Safety**: If anything goes wrong, transactions automatically roll back
+
+### Expected Output
+
+When you run the program, you should see output like:
+
+```
+=== Dining Philosophers Simulation ===
+[1a2b3c4d] Declared resource: fork0 | Resources: [fork0:✅]
+[1a2b3c4d] Declared resource: fork1 | Resources: [fork0:✅, fork1:✅]
+[1a2b3c4d] Declared resource: fork2 | Resources: [fork0:✅, fork1:✅, fork2:✅]
+[1a2b3c4d] Declared resource: fork3 | Resources: [fork0:✅, fork1:✅, fork2:✅, fork3:✅]
+[1a2b3c4d] Declared resource: fork4 | Resources: [fork0:✅, fork1:✅, fork2:✅, fork3:✅, fork4:✅]
+[1a2b3c4d] Spawning process: Philosopher 0 | Resources: [fork0:✅, fork1:✅, fork2:✅, fork3:✅, fork4:✅]
+[1a2b3c4d] Spawning process: Philosopher 1 | Resources: [fork0:✅, fork1:✅, fork2:✅, fork3:✅, fork4:✅]
+[2f8a9b1c] Thinking for 1203 time units | Resources: [fork0:✅, fork1:✅, fork2:✅, fork3:✅, fork4:✅]
+[3d7e5f2a] Thinking for 891 time units | Resources: [fork0:✅, fork1:✅, fork2:✅, fork3:✅, fork4:✅]
+[2f8a9b1c] Locked resources: ["fork0","fork1"] | Resources: [fork0:🔒, fork1:🔒, fork2:✅, fork3:✅, fork4:✅]
+[2f8a9b1c] Eating for 1156 time units using resources leftFork and rightFork | Resources: [fork0:🔒, fork1:🔒, fork2:✅, fork3:✅, fork4:✅]
+```
+
+The colored output with thread IDs helps you track which philosopher is performing each action, and the resource status shows real-time fork availability.
+
+## Conclusion
+
+We've successfully built a comprehensive STM-based evaluator for the Dining Philosophers language that demonstrates:
+
+1. **Deadlock-Free Concurrency**: Using STM's atomic transactions to prevent deadlock
+2. **Composable Resource Management**: Resources can be safely combined and managed
+3. **Visual Debugging**: Color-coded output with real-time resource monitoring
+4. **Scalable Architecture**: The solution works with any number of philosophers
+5. **Type-Safe Implementation**: Leveraging Haskell's type system for correctness
+
+### Key Takeaways
+
+1. **STM Simplifies Concurrency**: No need for complex lock ordering or manual deadlock prevention
+2. **Atomic Transactions**: The `atomically` block ensures all-or-nothing resource acquisition
+3. **Automatic Retry**: STM handles blocking and retrying when resources aren't available
+4. **Composability**: Small STM operations compose into larger atomic operations
+5. **Exception Safety**: Failed transactions automatically roll back
+
+### Further Extensions
+
+You could extend this implementation with:
+
+1. **Fairness Guarantees**: Ensure no philosopher starves
+2. **Performance Metrics**: Track eating/thinking times and resource utilization
+3. **Dynamic Resource Creation**: Add/remove forks during execution
+4. **Network Distribution**: Extend to distributed dining philosophers
+5. **GUI Visualization**: Create a graphical representation of the dining table
+
+The STM-based approach provides a solid foundation for all these extensions while maintaining correctness and avoiding deadlocks.
+
+This completes our journey from parsing the Dining Philosophers language to executing it with safe, deadlock-free concurrency using Haskell's Software Transactional Memory system.
