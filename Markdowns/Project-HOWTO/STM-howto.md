@@ -42,7 +42,7 @@ Traditional approaches fail here. Let's see why.
 module BadConcurrency where
 
 import Control.Concurrent
-import Control.Concurrent.MVar
+import Control.Monad (replicateM, forever)
 
 -- Represent a fork as an MVar
 type Fork = MVar ()
@@ -55,14 +55,12 @@ createForks n = replicateM n (newMVar ())
 philosopher :: Int -> Fork -> Fork -> IO ()
 philosopher id leftFork rightFork = forever $ do
     putStrLn $ "Philosopher " ++ show id ++ " thinking"
-    threadDelay 1000000
     
     putStrLn $ "Philosopher " ++ show id ++ " hungry"
     takeMVar leftFork   -- Get left fork
     takeMVar rightFork  -- Get right fork (DEADLOCK!)
     
     putStrLn $ "Philosopher " ++ show id ++ " eating"
-    threadDelay 500000
     
     putMVar leftFork ()
     putMVar rightFork ()
@@ -79,12 +77,12 @@ testDeadlock = do
         fork2 = forks !! 1  
         fork3 = forks !! 2
     
-    -- Start philosophers (this will deadlock!)
+    -- Start philosophers (deadlock prone!)
     forkIO $ philosopher 1 fork1 fork2
     forkIO $ philosopher 2 fork2 fork3  
     forkIO $ philosopher 3 fork3 fork1
     
-    threadDelay 5000000  -- Wait 5 seconds
+    threadDelay 5000000  
     putStrLn "If you see this, no deadlock occurred"
 ```
 
