@@ -31,22 +31,39 @@ Funkcje do zaimplementowania:
 - `consumer :: STMQueue Int -> Int -> IO [Int]` - funkcja konsumenta pobierająca n elementów
 
 ## 3. GADT dla typowanych wyrażeń
-Zdefiniuj GADT reprezentujący typowane wyrażenia arytmetyczne i logiczne:
+Korzystając z przykładu poniżej i tutoriala dot. GADT dołączonego do tego dokumentu
+zaimplementuj GADT dla prostego języka programowania który zapobiega błędom typów w czasie kompilacji.
+
+#### Wymagania języka:
+Twój język powinien obsługiwać:
+
+Literały: liczby całkowite, wartości logiczne, stringi
+Operacje arytmetyczne: +, -, * (tylko na liczbach)
+Operacje logiczne: &&, ||, ! (tylko na boolach)
+Porównania: ==, <, > (zwracają bool)
+Instrukcja warunkowa: if-then-else
+Konkatenacja stringów: ++
+
+Przykłady wyrażeń które powinny być poprawne:
+```haskell
+5 + 3
+True && False
+if True then 42 else 17
+"hello" ++ " world"
+5 > 3
+```
+Zaimplementuj: 
+GADT Expr t - reprezentujący wyrażenia z typem t
+Funkcja eval :: Expr t -> t - ewaluująca wyrażenia
+
+#### Przykład GADT 
 ```haskell
 data Expr t where
   IntLit :: Int -> Expr Int
   BoolLit :: Bool -> Expr Bool
   Add :: Expr Int -> Expr Int -> Expr Int
-  Mult :: Expr Int -> Expr Int -> Expr Int
-  Equal :: Eq a => Expr a -> Expr a -> Expr Bool
-  Less :: Ord a => Expr a -> Expr a -> Expr Bool
-  And :: Expr Bool -> Expr Bool -> Expr Bool
-  Or :: Expr Bool -> Expr Bool -> Expr Bool
   If :: Expr Bool -> Expr a -> Expr a -> Expr a
 ```
-Zaimplementuj funkcje:
-- `eval :: Expr t -> t` - oblicza wartość wyrażenia
-- `typeCheck :: Expr t -> String` - zwraca opis typu wyrażenia
 
 ## 4. STM-owy system cache'u
 Zaimplementuj system cache'u z TTL (Time To Live) używając STM:
