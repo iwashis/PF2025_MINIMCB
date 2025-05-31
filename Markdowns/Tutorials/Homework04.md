@@ -1,0 +1,204 @@
+# Zadania Domowe z Haskella, część 4 - STM i GADTs
+
+## 1. Implementacja banku z STM
+Zdefiniuj typ konta bankowego i zaimplementuj podstawowe operacje używając Software Transactional Memory:
+```haskell
+data BankAccount = BankAccount 
+  { accountId :: Int
+  , balance :: TVar Double
+  }
+```
+Zaimplementuj następujące funkcje:
+- `createAccount :: Int -> Double -> IO BankAccount` - tworzy nowe konto z początkowym saldem
+- `deposit :: BankAccount -> Double -> STM ()` - wpłaca pieniądze na konto
+- `withdraw :: BankAccount -> Double -> STM Bool` - wypłaca pieniądze (zwraca False jeśli niewystarczające środki)
+- `transfer :: BankAccount -> BankAccount -> Double -> STM Bool` - przelewa pieniądze między kontami
+- `getBalance :: BankAccount -> STM Double` - pobiera aktualny stan konta
+- `processTransactions :: [BankAccount -> STM ()] -> [BankAccount] -> IO ()` - wykonuje listę transakcji atomowo
+
+## 2. Kolejka współbieżna z STM
+Zaimplementuj thread-safe kolejkę używając STM:
+```haskell
+data STMQueue a = STMQueue (TVar [a]) 
+```
+Funkcje do zaimplementowania:
+- `newSTMQueue :: STM (STMQueue a)` - tworzy pustą kolejkę
+- `enqueue :: a -> STMQueue a -> STM ()` - dodaje element do kolejki
+- `dequeue :: STMQueue a -> STM (Maybe a)` - usuwa element z kolejki
+- `isEmpty :: STMQueue a -> STM Bool` - sprawdza czy kolejka jest pusta
+- `size :: STMQueue a -> STM Int` - zwraca rozmiar kolejki
+- `producer :: STMQueue Int -> [Int] -> IO ()` - funkcja producenta dodająca elementy
+- `consumer :: STMQueue Int -> Int -> IO [Int]` - funkcja konsumenta pobierająca n elementów
+
+## 3. GADT dla typowanych wyrażeń
+Zdefiniuj GADT reprezentujący typowane wyrażenia arytmetyczne i logiczne:
+```haskell
+data Expr t where
+  IntLit :: Int -> Expr Int
+  BoolLit :: Bool -> Expr Bool
+  Add :: Expr Int -> Expr Int -> Expr Int
+  Mult :: Expr Int -> Expr Int -> Expr Int
+  Equal :: Eq a => Expr a -> Expr a -> Expr Bool
+  Less :: Ord a => Expr a -> Expr a -> Expr Bool
+  And :: Expr Bool -> Expr Bool -> Expr Bool
+  Or :: Expr Bool -> Expr Bool -> Expr Bool
+  If :: Expr Bool -> Expr a -> Expr a -> Expr a
+```
+Zaimplementuj funkcje:
+- `eval :: Expr t -> t` - oblicza wartość wyrażenia
+- `typeCheck :: Expr t -> String` - zwraca opis typu wyrażenia
+
+## 4. STM-owy system cache'u
+Zaimplementuj system cache'u z TTL (Time To Live) używając STM:
+```haskell
+data CacheEntry a = CacheEntry 
+  { value :: a
+  , expiryTime :: UTCTime
+  }
+
+data STMCache k v = STMCache (TVar (Map k (CacheEntry v)))
+```
+Funkcje do zaimplementowania:
+- `newCache :: STM (STMCache k v)` - tworzy nowy cache
+- `put :: Ord k => k -> v -> NominalDiffTime -> STMCache k v -> STM ()` - dodaje element z TTL
+- `get :: Ord k => k -> STMCache k v -> STM (Maybe v)` - pobiera element jeśli nie wygasł
+- `evictExpired :: Ord k => STMCache k v -> STM Int` - usuwa wygasłe elementy
+- `size :: STMCache k v -> STM Int` - zwraca liczbę aktywnych elementów
+- `cleanupDaemon :: Ord k => STMCache k v -> IO ()` - demon czyszczący cache co 60 sekund
+
+## 5. Distributed Counter z STM
+Zaimplementuj rozproszony licznik używając STM do synchronizacji:
+```haskell
+data DistributedCounter = DistributedCounter 
+  { nodeId :: Int
+  , localCount :: TVar Int
+  , remoteNodes :: TVar [TVar Int]
+  }
+```
+Funkcje do zaimplementowania:
+- `createNode :: Int -> IO DistributedCounter` - tworzy węzeł licznika
+- `connectNodes :: DistributedCounter -> DistributedCounter -> STM ()` - łączy dwa węzły
+- `increment :: DistributedCounter -> STM ()` - zwiększa lokalny licznik
+- `getGlobalCount :: DistributedCounter -> STM Int` - pobiera globalną sumę ze wszystkich węzłów
+- `synchronize :: [DistributedCounter] -> IO ()` - synchronizuje wszystkie węzły
+- `stressTest :: Int -> Int -> IO ()` - test wydajności z n wątkami wykonującymi m operacji
+
+## Uwagi
+- Wszystkie zadania z STM powinny być thread-safe i używać transakcji atomowych
+- Pamiętaj o importowaniu `Control.Concurrent.STM` oraz `{-# LANGUAGE GADTs #-}`
+
+## Wprowadzenie do GADTs (Generalized Algebraic Data Types)
+
+### Czym są GADTs?
+GADTs to rozszerzenie zwykłych typów algebraicznych w Haskellu, które pozwalają na precyzyjniejsze określenie typów konstruktorów. W przeciwieństwie do zwykłych ADT, konstruktory GADT mogą zwracać różne konkretne instancje typu ogólnego.
+
+### Składnia i podstawy
+Aby używać GADTs, potrzebujesz rozszerzenia językowego:
+```haskell
+{-# LANGUAGE GADTs #-}
+```
+
+Podstawowa składnia:
+```haskell
+data MyType a where
+  Constructor1 :: Int -> MyType Int
+  Constructor2 :: String -> MyType String
+  Constructor3 :: a -> a -> MyType a
+```
+
+### Różnica między ADT a GADT
+
+**Zwykły ADT:**
+```haskell
+data Expr a = IntLit Int | BoolLit Bool | Add (Expr a) (Expr a)
+-- Problem: Add (IntLit 5) (BoolLit True) jest poprawne typowo!
+```
+
+**GADT:**
+```haskell
+data Expr a where
+  IntLit :: Int -> Expr Int
+  BoolLit :: Bool -> Expr Bool
+  Add :: Expr Int -> Expr Int -> Expr Int
+-- Add (IntLit 5) (BoolLit True) nie skompiluje się!
+```
+
+### Kluczowe zalety GADTs
+
+1. **Bezpieczeństwo typów w czasie kompilacji**
+   ```haskell
+   eval :: Expr t -> t
+   eval (IntLit n) = n
+   eval (BoolLit b) = b
+   eval (Add e1 e2) = eval e1 + eval e2
+   -- Kompilator wie, że Add zawsze zwraca Int
+   ```
+
+2. **Phantom types z gwarancjami**
+   ```haskell
+   data Safe
+   data Unsafe
+   
+   data Database s where
+     UnsafeDB :: String -> Database Unsafe
+     SafeDB :: String -> Database Safe
+   
+   query :: Database Safe -> String -> IO Result
+   -- Można wywołać tylko na bezpiecznej bazie danych
+   ```
+
+3. **Indeksowanie typami**
+   ```haskell
+   data Vec (n :: Nat) a where
+     VNil :: Vec Zero a
+     VCons :: a -> Vec n a -> Vec (Succ n) a
+   
+   vhead :: Vec (Succ n) a -> a  -- Nie można wywołać na pustej liście
+   ```
+
+### Popularne wzorce użycia
+
+1. **Typowane interpretery/ewaluatory**
+2. **Bezpieczne API (np. zapobieganie SQL injection)**
+3. **Listy/kolekcje o długości znanej w czasie kompilacji**
+4. **State machines z gwarancjami stanu**
+5. **Parsery z typowanym wyjściem**
+
+### Przykład zaawansowany - State Machine
+```haskell
+data State = Locked | Unlocked
+
+data Door (s :: State) where
+  LockedDoor :: Door Locked
+  UnlockedDoor :: Door Unlocked
+
+unlock :: Door Locked -> Door Unlocked
+unlock LockedDoor = UnlockedDoor
+
+lock :: Door Unlocked -> Door Locked  
+lock UnlockedDoor = LockedDoor
+
+-- open :: Door Unlocked -> IO ()  -- Można otworzyć tylko odblokowane
+-- close :: Door s -> Door s       -- Można zamknąć w każdym stanie
+```
+
+### Wskazówki do implementacji
+
+1. **Pattern matching** - kompilator wie więcej o typach:
+   ```haskell
+   eval :: Expr t -> t
+   eval expr = case expr of
+     IntLit n -> n      -- kompilator wie, że t ~ Int
+     BoolLit b -> b     -- kompilator wie, że t ~ Bool
+   ```
+
+2. **Pomocnicze funkcje typu** - czasem potrzebne są dodatkowe ograniczenia:
+   ```haskell
+   data TypeRep t where
+     IntRep :: TypeRep Int
+     BoolRep :: TypeRep Bool
+   
+   defaultValue :: TypeRep t -> t
+   defaultValue IntRep = 0
+   defaultValue BoolRep = False
+   ``
