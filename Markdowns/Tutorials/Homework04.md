@@ -124,12 +124,11 @@ data MyType a where
 ```
 
 ### Różnica między ADT a GADT
-Drzewa BST w ADT i GADT: 
-
+Drzewa BST w języku ADT i GADT. Najpierw w ADT:
 ```haskell 
 data BST a = Leaf a | Empty | Node a (BST a) (BST a) 
 ```
-W języku typów GADT wygląda następująco:
+Natomiast w języku typów GADT wygląda następująco:
 
 ```haskell 
 data BST a where
@@ -139,6 +138,7 @@ data BST a where
 ```
 
 **Zwykły ADT:**
+Inny przykład, którego nie da dobrze modelować za pomocą ADT, a z łatwością można to zrobić w GADT.
 ```haskell
 data Expr a = IntLit Int | BoolLit Bool | Add (Expr a) (Expr a)
 -- Problem: Add (IntLit 5) (BoolLit True) jest poprawne typowo!
@@ -155,7 +155,7 @@ data Expr a where
 -- Add (IntLit 5) (BoolLit True) nie skompiluje się!
 ```
 
-### Kluczowe zalety GADTs
+### Cechy GADTs
 
 1. **Bezpieczeństwo typów w czasie kompilacji**
    ```haskell
@@ -178,42 +178,6 @@ data Expr a where
    query :: Database Safe -> String -> IO Result
    -- Można wywołać tylko na bezpiecznej bazie danych
    ```
-
-3. **Indeksowanie typami**
-   ```haskell
-   data Vec (n :: Nat) a where
-     VNil :: Vec Zero a
-     VCons :: a -> Vec n a -> Vec (Succ n) a
-   
-   vhead :: Vec (Succ n) a -> a  -- Nie można wywołać na pustej liście
-   ```
-
-### Popularne wzorce użycia
-
-1. **Typowane interpretery/ewaluatory**
-2. **Bezpieczne API (np. zapobieganie SQL injection)**
-3. **Listy/kolekcje o długości znanej w czasie kompilacji**
-4. **State machines z gwarancjami stanu**
-5. **Parsery z typowanym wyjściem**
-
-### Przykład zaawansowany - State Machine
-```haskell
-data State = Locked | Unlocked
-
-data Door (s :: State) where
-  LockedDoor :: Door Locked
-  UnlockedDoor :: Door Unlocked
-
-unlock :: Door Locked -> Door Unlocked
-unlock LockedDoor = UnlockedDoor
-
-lock :: Door Unlocked -> Door Locked  
-lock UnlockedDoor = LockedDoor
-
--- open :: Door Unlocked -> IO ()  -- Można otworzyć tylko odblokowane
--- close :: Door s -> Door s       -- Można zamknąć w każdym stanie
-```
-
 ### Wskazówki do implementacji
 
 1. **Pattern matching** - kompilator wie więcej o typach:
