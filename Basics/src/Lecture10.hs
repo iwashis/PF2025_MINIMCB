@@ -69,7 +69,7 @@ mVarDeadlock = do
     counter2 <- newMVar 0 
     
     -- Spawn 100 threads with inconsistent lock ordering
-    forM_ [1..100] $ \i -> forkIO $ do
+    forM_ [1,2] $ \i -> forkIO $ do
         if even i
         then do
             -- Even threads: take counter first, then counter2

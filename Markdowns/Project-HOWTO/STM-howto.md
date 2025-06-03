@@ -208,11 +208,41 @@ readTMVar :: TMVar a -> STM a          -- Read without taking
 tryTakeTMVar :: TMVar a -> STM (Maybe a)  -- Non-blocking take
 ```
 
+### TMVars vs. TVars 
+
+TMVars behaviour can be simulated with TVars as follows:
+```haskell
+type PseudoTMVar a = TVar (Maybe a)
+
+newEmptyPseudoTMVar :: STM (PseudoTMVar a)
+newEmptyPseudoTMVar = newTVar Nothing
+
+putPseudoTMVar :: PseudoTMVar a -> a -> STM ()
+putPseudoTMVar tmvar val = do
+  current <- readTVar tmvar
+  case current of
+    Nothing -> writeTVar tmvar (Just val)
+    Just _  -> retry  -- blocks if already full
+
+takePseudoTMVar :: PseudoTMVar a -> STM a
+takePseudoTMVar tmvar = do
+  current <- readTVar tmvar
+  case current of
+    Nothing -> retry  -- blocks if empty
+    Just val -> do
+      writeTVar tmvar Nothing
+      return val
+```
+
+
+However, TMVars are more optimized for the above operations, so we should use TMVars instead of the "pseudo" approach.
+
+
 **Live Coding Exercise 4**: Resource as TMVar
 
 ```haskell
 -- A resource that can be acquired and released
-type Resource = TMVar ()
+type Resource = TMVar () -- TVar (Maybe ())
 
 -- Create a resource (initially available)
 createResource :: IO Resource

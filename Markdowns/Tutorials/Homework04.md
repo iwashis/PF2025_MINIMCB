@@ -124,6 +124,19 @@ data MyType a where
 ```
 
 ### Różnica między ADT a GADT
+Drzewa BST w ADT i GADT: 
+
+```haskell 
+data BST a = Leaf a | Empty | Node a (BST a) (BST a) 
+```
+W języku typów GADT wygląda następująco:
+
+```haskell 
+data BST a where
+    Empty :: BST a 
+    Leaf :: a -> BST a 
+    Node :: a -> BST a -> BST a -> BST a
+```
 
 **Zwykły ADT:**
 ```haskell
@@ -137,6 +150,8 @@ data Expr a where
   IntLit :: Int -> Expr Int
   BoolLit :: Bool -> Expr Bool
   Add :: Expr Int -> Expr Int -> Expr Int
+  Eq :: Expr a -> Expr a -> Expr Bool  
+  If :: Expr Bool -> Expr a -> Expr a -> Expr a 
 -- Add (IntLit 5) (BoolLit True) nie skompiluje się!
 ```
 
@@ -218,4 +233,4 @@ lock UnlockedDoor = LockedDoor
    defaultValue :: TypeRep t -> t
    defaultValue IntRep = 0
    defaultValue BoolRep = False
-   ``
+   ``` 
