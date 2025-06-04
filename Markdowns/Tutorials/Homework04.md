@@ -52,9 +52,10 @@ if True then 42 else 17
 "hello" ++ " world"
 5 > 3
 ```
+
 Zaimplementuj: 
-GADT Expr t - reprezentujący wyrażenia z typem t
-Funkcja eval :: Expr t -> t - ewaluująca wyrażenia
+* GADT `Expr t` - reprezentujący wyrażenia z typem t,
+* Funkcja `eval :: Expr t -> t` - ewaluująca wyrażenia.
 
 #### Przykład GADT 
 ```haskell
