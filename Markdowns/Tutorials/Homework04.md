@@ -80,7 +80,7 @@ Funkcje do zaimplementowania:
 - `newCache :: STM (STMCache k v)` - tworzy nowy cache
 - `put :: Ord k => k -> v -> NominalDiffTime -> STMCache k v -> STM ()` - dodaje element z TTL
 - `get :: Ord k => k -> STMCache k v -> STM (Maybe v)` - pobiera element jeśli nie wygasł
-- `evictExpired :: Ord k => STMCache k v -> STM Int` - usuwa wygasłe elementy
+- `evictExpired :: Ord k => STMCache k v -> UTCTime -> STM Int` - usuwa wygasłe elementy
 - `size :: STMCache k v -> STM Int` - zwraca liczbę aktywnych elementów
 - `cleanupDaemon :: Ord k => STMCache k v -> IO ()` - demon czyszczący cache co 60 sekund
 
