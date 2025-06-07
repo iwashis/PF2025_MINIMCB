@@ -1,6 +1,5 @@
 # Grammar-Based Parsing Language
 
-Taken (OW, KB, KD)
 ## Project Overview
 This project implements a domain-specific language for defining formal grammars and generating parsers from them. The language allows users to specify syntax rules in a readable format, associate semantic actions with parsing events, and generate parsers that convert text into structured representations.
 
@@ -35,13 +34,13 @@ data Production
   | Optional Production            -- Optional production (0 or 1)
   | Repeat Production              -- Zero or more repetitions
   | RepeatOneOrMore Production     -- One or more repetitions
+  | Action Production String       -- Semantic action
   deriving (Show, Eq)
 
 -- Symbols that can appear in a production
 data Symbol
   = Terminal String                -- Terminal symbol
   | NonterminalSymbol Nonterminal  -- Nonterminal symbol
-  | ActionSymbol Production Action -- Production with associated action
   | Epsilon                        -- Empty string
   deriving (Show, Eq)
 

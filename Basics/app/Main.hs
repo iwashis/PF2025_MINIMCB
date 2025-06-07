@@ -1,5 +1,6 @@
 module Main (main) where
 
-import Lecture10
+import Lib
+
 main :: IO ()
-main = testDeadlock 
+main = someFunc

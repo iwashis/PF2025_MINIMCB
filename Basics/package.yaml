@@ -24,8 +24,6 @@ dependencies:
 - mtl
 - transformers
 - containers
-- stm
-- random
 
 ghc-options:
 - -Wall
