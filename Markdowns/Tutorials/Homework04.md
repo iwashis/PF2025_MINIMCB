@@ -90,16 +90,34 @@ Zaimplementuj rozproszony licznik używając STM do synchronizacji:
 data DistributedCounter = DistributedCounter 
   { nodeId :: Int
   , localCount :: TVar Int
-  , remoteNodes :: TVar [TVar Int]
+  , remoteNodes :: TVar [Int]
   }
 ```
 Funkcje do zaimplementowania:
-- `createNode :: Int -> IO DistributedCounter` - tworzy węzeł licznika
-- `connectNodes :: DistributedCounter -> DistributedCounter -> STM ()` - łączy dwa węzły
-- `increment :: DistributedCounter -> STM ()` - zwiększa lokalny licznik
-- `getGlobalCount :: DistributedCounter -> STM Int` - pobiera globalną sumę ze wszystkich węzłów
-- `synchronize :: [DistributedCounter] -> IO ()` - synchronizuje wszystkie węzły
-- `stressTest :: Int -> Int -> IO ()` - test wydajności z n wątkami wykonującymi m operacji
+- `createNode :: Int -> IO DistributedCounter`
+Tworzy nowy węzeł licznika z podanym ID. Inicjalizuje lokalny licznik na 0. Tworzy pustą listę połączeń do innych węzłów. Zwraca nową instancję DistributedCounter
+
+- `connectNodes :: DistributedCounter -> DistributedCounter -> STM ()`
+
+Łączy dwa węzły w sieci rozproszonej. Dodaje referencję do licznika pierwszego węzła w liście drugiego węzła i vice versa
+Operacja atomowa dzięki STM - albo oba węzły się połączą, albo żaden.
+
+- `increment :: DistributedCounter -> STM ()`
+
+Zwiększa lokalny licznik danego węzła o 1.
+Operacja atomowa - gwarantuje spójność przy współbieżnym dostępie
+Modyfikuje tylko lokalną wartość, nie wpływa bezpośrednio na inne węzły
+
+- `getGlobalCount :: DistributedCounter -> STM Int`
+
+Oblicza globalną sumę ze wszystkich połączonych węzłów.
+Czyta lokalny licznik oraz wszystkie liczniki z połączonych węzłów
+Zwraca sumę wszystkich wartości
+Operacja atomowa - daje spójny obraz całego systemu w danym momencie
+
+- `stressTest :: Int -> Int -> IO ()`
+Test wydajności systemu. Tworzy n wątków, każdy wykonuje m operacji increment.
+
 
 ## Uwagi
 - Wszystkie zadania z STM powinny być thread-safe i używać transakcji atomowych
@@ -139,7 +157,7 @@ data BST a where
 ```
 
 **Zwykły ADT:**
-Inny przykład, którego nie da dobrze modelować za pomocą ADT, a z łatwością można to zrobić w GADT.
+Inny przykład, którego nie da dobrze modelować za pomocą ADT, a z łatwością można to zrobić w GADT.
 ```haskell
 data Expr a = IntLit Int | BoolLit Bool | Add (Expr a) (Expr a)
 -- Problem: Add (IntLit 5) (BoolLit True) jest poprawne typowo!
